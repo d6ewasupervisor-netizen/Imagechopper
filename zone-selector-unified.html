@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Zone Selector</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      color: #e0e0e0;
+      padding: 12px;
+      overflow-x: hidden;
+    }
+    
+    html { height: -webkit-fill-available; }
+    
+    .container { max-width: 1400px; margin: 0 auto; }
+    
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #00d4ff, #7b68ee);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .header-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+    
+    .btn {
+      padding: 12px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      border: none;
+      font-family: inherit;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .load-btn {
+      background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+      color: #0a0a0a;
+      box-shadow: 0 4px 15px rgba(0,212,255,0.3);
+    }
+    
+    .clear-btn {
+      background: rgba(255,100,100,0.2);
+      border: 1px solid rgba(255,100,100,0.4);
+      color: #ff6464;
+    }
+    
+    .main-content { display: flex; flex-direction: column; gap: 12px; }
+    
+    @media (min-width: 900px) {
+      .main-content { flex-direction: row; gap: 20px; }
+      .sidebar { width: 280px; }
+    }
+    
+    .canvas-area {
+      flex: 1;
+      background: rgba(0,0,0,0.4);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      position: relative;
+      overflow: hidden;
+      touch-action: none;
+    }
+    
+    .placeholder {
+      text-align: center;
+      color: #666;
+    }
+    
+    .placeholder-icon { font-size: 3rem; margin-bottom: 16px; }
+    
+    .image-container {
+      position: relative;
+      display: none;
+      touch-action: none;
+      cursor: crosshair;
+    }
+    
+    .image-container img {
+      display: block;
+      pointer-events: none;
+      -webkit-user-drag: none;
+      user-select: none;
+    }
+    
+    .zone {
+      position: absolute;
+      border: 2px solid #00d4ff;
+      background: rgba(0,212,255,0.15);
+    }
+    
+    .zone.selected {
+      border-color: #7b68ee;
+      background: rgba(123,104,238,0.2);
+    }
+    
+    .zone-label {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      background: #00d4ff;
+      color: #0a0a0a;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    
+    .zone.selected .zone-label {
+      background: #7b68ee;
+    }
+    
+    .handle {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      background: #7b68ee;
+      border: 2px solid #fff;
+      border-radius: 4px;
+      display: none;
+    }
+    
+    .zone.selected .handle { display: block; }
+    
+    .handle-nw { top: -11px; left: -11px; cursor: nwse-resize; }
+    .handle-ne { top: -11px; right: -11px; cursor: nesw-resize; }
+    .handle-sw { bottom: -11px; left: -11px; cursor: nesw-resize; }
+    .handle-se { bottom: -11px; right: -11px; cursor: nwse-resize; }
+    .handle-n { top: -11px; left: 50%; margin-left: -11px; cursor: ns-resize; }
+    .handle-s { bottom: -11px; left: 50%; margin-left: -11px; cursor: ns-resize; }
+    .handle-w { top: 50%; left: -11px; margin-top: -11px; cursor: ew-resize; }
+    .handle-e { top: 50%; right: -11px; margin-top: -11px; cursor: ew-resize; }
+    
+    .drawing-rect {
+      position: absolute;
+      border: 2px dashed #7b68ee;
+      background: rgba(123,104,238,0.2);
+      pointer-events: none;
+    }
+    
+    .sidebar {
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .field-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .text-input {
+      width: 100%;
+      padding: 14px;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 16px;
+      -webkit-appearance: none;
+    }
+    
+    .text-input:focus {
+      outline: none;
+      border-color: #00d4ff;
+    }
+    
+    .zones-list { overflow: auto; max-height: 200px; }
+    
+    @media (min-width: 900px) {
+      .zones-list { flex: 1; max-height: none; }
+    }
+    
+    .empty-msg { color: #555; font-size: 0.85rem; }
+    
+    .zone-items { display: flex; flex-direction: column; gap: 8px; }
+    
+    .zone-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: rgba(0,212,255,0.1);
+      border: 1px solid rgba(0,212,255,0.3);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    
+    .zone-item.selected {
+      background: rgba(123,104,238,0.2);
+      border-color: rgba(123,104,238,0.5);
+    }
+    
+    .zone-item strong { color: #00d4ff; }
+    .zone-item.selected strong { color: #7b68ee; }
+    .zone-item .dims { color: #666; margin-left: 8px; }
+    
+    .delete-btn {
+      background: rgba(255,100,100,0.2);
+      border: 1px solid rgba(255,100,100,0.4);
+      border-radius: 4px;
+      color: #ff6464;
+      cursor: pointer;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .export-btn {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #7b68ee 0%, #5a4fcf 100%);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(123,104,238,0.4);
+      transition: all 0.2s;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .export-btn:disabled {
+      background: rgba(100,100,100,0.3);
+      color: #666;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    
+    .hint-bar {
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      text-align: center;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Zone Selector</h1>
+      <div class="header-buttons">
+        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        <button class="btn load-btn" onclick="document.getElementById('fileInput').click()">Load Image</button>
+        <button class="btn clear-btn" onclick="clearAllZones()">Clear All</button>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <div class="canvas-area" id="canvasArea">
+        <div class="placeholder" id="placeholder">
+          <div class="placeholder-icon">📷</div>
+          <p>Load an image to begin</p>
+        </div>
+        <div class="image-container" id="imageContainer">
+          <img id="mainImage" src="" alt="Loaded image">
+          <div id="zonesOverlay"></div>
+          <div class="drawing-rect" id="drawingRect" style="display: none;"></div>
+        </div>
+      </div>
+
+      <div class="sidebar">
+        <div class="hint-bar">
+          Drag empty space to draw • Click zone to select • Drag to move • Use handles to resize
+        </div>
+        
+        <div>
+          <label class="field-label">Base Filename</label>
+          <input type="text" id="baseName" class="text-input" value="zone" placeholder="zone">
+        </div>
+
+        <div class="zones-list">
+          <div class="field-label">Zones (<span id="zoneCount">0</span>)</div>
+          <p class="empty-msg" id="emptyMsg">Draw rectangles on the image</p>
+          <div class="zone-items" id="zoneItems"></div>
+        </div>
+
+        <button class="export-btn" id="exportBtn" disabled onclick="exportZones()">Export 0 Zones</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let originalImage = null;
+    let scale = 1;
+    let zones = [];
+    let selectedZoneId = null;
+    
+    // Interaction state
+    let action = null; // 'draw', 'move', 'resize'
+    let activeHandle = null;
+    let startX = 0, startY = 0;
+    let startZone = null; // snapshot of zone at interaction start
+
+    const fileInput = document.getElementById('fileInput');
+    const placeholder = document.getElementById('placeholder');
+    const imageContainer = document.getElementById('imageContainer');
+    const mainImage = document.getElementById('mainImage');
+    const zonesOverlay = document.getElementById('zonesOverlay');
+    const drawingRect = document.getElementById('drawingRect');
+    const canvasArea = document.getElementById('canvasArea');
+    const zoneCount = document.getElementById('zoneCount');
+    const emptyMsg = document.getElementById('emptyMsg');
+    const zoneItems = document.getElementById('zoneItems');
+    const exportBtn = document.getElementById('exportBtn');
+    const baseNameInput = document.getElementById('baseName');
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          originalImage = img;
+          zones = [];
+          selectedZoneId = null;
+          updateZonesList();
+          renderZones();
+
+          const maxWidth = canvasArea.clientWidth - 24;
+          const maxHeight = window.innerHeight * 0.5;
+          const scaleX = maxWidth / img.width;
+          const scaleY = maxHeight / img.height;
+          scale = Math.min(scaleX, scaleY, 1);
+
+          const displayWidth = img.width * scale;
+          const displayHeight = img.height * scale;
+
+          mainImage.src = event.target.result;
+          mainImage.style.width = displayWidth + 'px';
+          mainImage.style.height = displayHeight + 'px';
+          imageContainer.style.width = displayWidth + 'px';
+          imageContainer.style.height = displayHeight + 'px';
+
+          placeholder.style.display = 'none';
+          imageContainer.style.display = 'block';
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function getEventPos(e) {
+      const rect = imageContainer.getBoundingClientRect();
+      let clientX, clientY;
+      
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else if (e.changedTouches && e.changedTouches.length > 0) {
+        clientX = e.changedTouches[0].clientX;
+        clientY = e.changedTouches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    }
+
+    function findZoneAtPos(x, y) {
+      // Check from top (last) to bottom (first) for proper z-order
+      for (let i = zones.length - 1; i >= 0; i--) {
+        const z = zones[i];
+        if (x >= z.displayX && x <= z.displayX + z.displayW &&
+            y >= z.displayY && y <= z.displayY + z.displayH) {
+          return z;
+        }
+      }
+      return null;
+    }
+
+    function findHandleAtPos(x, y) {
+      const zone = zones.find(z => z.id === selectedZoneId);
+      if (!zone) return null;
+      
+      const hitSize = 28; // generous hit area
+      const hs = hitSize / 2;
+      
+      const cx = zone.displayX + zone.displayW / 2;
+      const cy = zone.displayY + zone.displayH / 2;
+      
+      const handles = {
+        'nw': { hx: zone.displayX, hy: zone.displayY },
+        'ne': { hx: zone.displayX + zone.displayW, hy: zone.displayY },
+        'sw': { hx: zone.displayX, hy: zone.displayY + zone.displayH },
+        'se': { hx: zone.displayX + zone.displayW, hy: zone.displayY + zone.displayH },
+        'n':  { hx: cx, hy: zone.displayY },
+        's':  { hx: cx, hy: zone.displayY + zone.displayH },
+        'w':  { hx: zone.displayX, hy: cy },
+        'e':  { hx: zone.displayX + zone.displayW, hy: cy },
+      };
+      
+      for (const [name, pos] of Object.entries(handles)) {
+        if (x >= pos.hx - hs && x <= pos.hx + hs && y >= pos.hy - hs && y <= pos.hy + hs) {
+          return name;
+        }
+      }
+      return null;
+    }
+
+    function startInteraction(e) {
+      if (!originalImage) return;
+      e.preventDefault();
+      
+      const pos = getEventPos(e);
+      startX = pos.x;
+      startY = pos.y;
+
+      // Priority 1: Check if clicking a resize handle on selected zone
+      const handle = findHandleAtPos(pos.x, pos.y);
+      if (handle) {
+        action = 'resize';
+        activeHandle = handle;
+        const zone = zones.find(z => z.id === selectedZoneId);
+        startZone = { ...zone };
+        return;
+      }
+
+      // Priority 2: Check if clicking inside a zone
+      const clickedZone = findZoneAtPos(pos.x, pos.y);
+      if (clickedZone) {
+        selectedZoneId = clickedZone.id;
+        action = 'move';
+        startZone = { ...clickedZone };
+        renderZones();
+        updateZonesList();
+        return;
+      }
+
+      // Priority 3: Drawing new zone on empty space
+      selectedZoneId = null;
+      action = 'draw';
+      drawingRect.style.left = pos.x + 'px';
+      drawingRect.style.top = pos.y + 'px';
+      drawingRect.style.width = '0px';
+      drawingRect.style.height = '0px';
+      drawingRect.style.display = 'block';
+      renderZones();
+      updateZonesList();
+    }
+
+    function moveInteraction(e) {
+      if (!action) return;
+      e.preventDefault();
+      
+      const pos = getEventPos(e);
+      const dx = pos.x - startX;
+      const dy = pos.y - startY;
+      const imgW = imageContainer.clientWidth;
+      const imgH = imageContainer.clientHeight;
+
+      if (action === 'draw') {
+        const left = Math.max(0, Math.min(startX, pos.x));
+        const top = Math.max(0, Math.min(startY, pos.y));
+        const right = Math.min(imgW, Math.max(startX, pos.x));
+        const bottom = Math.min(imgH, Math.max(startY, pos.y));
+        
+        drawingRect.style.left = left + 'px';
+        drawingRect.style.top = top + 'px';
+        drawingRect.style.width = (right - left) + 'px';
+        drawingRect.style.height = (bottom - top) + 'px';
+      }
+      
+      else if (action === 'move' && startZone) {
+        const zone = zones.find(z => z.id === selectedZoneId);
+        if (!zone) return;
+        
+        let newX = startZone.displayX + dx;
+        let newY = startZone.displayY + dy;
+        
+        // Constrain to image bounds
+        newX = Math.max(0, Math.min(newX, imgW - zone.displayW));
+        newY = Math.max(0, Math.min(newY, imgH - zone.displayH));
+        
+        zone.displayX = newX;
+        zone.displayY = newY;
+        zone.x = newX / scale;
+        zone.y = newY / scale;
+        
+        renderZones();
+      }
+      
+      else if (action === 'resize' && startZone && activeHandle) {
+        const zone = zones.find(z => z.id === selectedZoneId);
+        if (!zone) return;
+        
+        let newX = startZone.displayX;
+        let newY = startZone.displayY;
+        let newW = startZone.displayW;
+        let newH = startZone.displayH;
+        
+        // Adjust based on which handle is being dragged
+        if (activeHandle.includes('w')) {
+          newX = startZone.displayX + dx;
+          newW = startZone.displayW - dx;
+        }
+        if (activeHandle.includes('e')) {
+          newW = startZone.displayW + dx;
+        }
+        if (activeHandle.includes('n')) {
+          newY = startZone.displayY + dy;
+          newH = startZone.displayH - dy;
+        }
+        if (activeHandle.includes('s')) {
+          newH = startZone.displayH + dy;
+        }
+        
+        // Enforce minimum size
+        const minSize = 20;
+        if (newW < minSize) {
+          if (activeHandle.includes('w')) {
+            newX = startZone.displayX + startZone.displayW - minSize;
+          }
+          newW = minSize;
+        }
+        if (newH < minSize) {
+          if (activeHandle.includes('n')) {
+            newY = startZone.displayY + startZone.displayH - minSize;
+          }
+          newH = minSize;
+        }
+        
+        // Constrain to image bounds
+        if (newX < 0) { newW += newX; newX = 0; }
+        if (newY < 0) { newH += newY; newY = 0; }
+        if (newX + newW > imgW) { newW = imgW - newX; }
+        if (newY + newH > imgH) { newH = imgH - newY; }
+        
+        zone.displayX = newX;
+        zone.displayY = newY;
+        zone.displayW = newW;
+        zone.displayH = newH;
+        zone.x = newX / scale;
+        zone.y = newY / scale;
+        zone.width = newW / scale;
+        zone.height = newH / scale;
+        
+        renderZones();
+        updateZonesList();
+      }
+    }
+
+    function endInteraction(e) {
+      if (!action) return;
+      e.preventDefault();
+      
+      if (action === 'draw') {
+        drawingRect.style.display = 'none';
+        
+        const pos = getEventPos(e);
+        const imgW = imageContainer.clientWidth;
+        const imgH = imageContainer.clientHeight;
+        
+        const left = Math.max(0, Math.min(startX, pos.x));
+        const top = Math.max(0, Math.min(startY, pos.y));
+        const right = Math.min(imgW, Math.max(startX, pos.x));
+        const bottom = Math.min(imgH, Math.max(startY, pos.y));
+        const width = right - left;
+        const height = bottom - top;
+
+        if (width > 10 && height > 10) {
+          const newZone = {
+            id: Date.now(),
+            x: left / scale,
+            y: top / scale,
+            width: width / scale,
+            height: height / scale,
+            displayX: left,
+            displayY: top,
+            displayW: width,
+            displayH: height
+          };
+          zones.push(newZone);
+          selectedZoneId = newZone.id;
+          updateZonesList();
+          renderZones();
+        }
+      }
+      
+      action = null;
+      activeHandle = null;
+      startZone = null;
+    }
+
+    // Mouse events
+    imageContainer.addEventListener('mousedown', startInteraction);
+    window.addEventListener('mousemove', moveInteraction);
+    window.addEventListener('mouseup', endInteraction);
+
+    // Touch events
+    imageContainer.addEventListener('touchstart', startInteraction, { passive: false });
+    window.addEventListener('touchmove', moveInteraction, { passive: false });
+    window.addEventListener('touchend', endInteraction, { passive: false });
+    window.addEventListener('touchcancel', endInteraction, { passive: false });
+
+    function updateZonesList() {
+      zoneCount.textContent = zones.length;
+      emptyMsg.style.display = zones.length === 0 ? 'block' : 'none';
+      exportBtn.disabled = zones.length === 0;
+      exportBtn.textContent = `Export ${zones.length} Zone${zones.length !== 1 ? 's' : ''}`;
+
+      zoneItems.innerHTML = zones.map((z, i) => `
+        <div class="zone-item ${z.id === selectedZoneId ? 'selected' : ''}" onclick="selectZone(${z.id})">
+          <span><strong>#${i + 1}</strong><span class="dims">${Math.round(z.width)}×${Math.round(z.height)}</span></span>
+          <button class="delete-btn" onclick="event.stopPropagation(); deleteZone(${z.id})">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function renderZones() {
+      zonesOverlay.innerHTML = zones.map((z, i) => `
+        <div class="zone ${z.id === selectedZoneId ? 'selected' : ''}" 
+             style="left:${z.displayX}px;top:${z.displayY}px;width:${z.displayW}px;height:${z.displayH}px;">
+          <span class="zone-label">${i + 1}</span>
+          <div class="handle handle-nw"></div>
+          <div class="handle handle-ne"></div>
+          <div class="handle handle-sw"></div>
+          <div class="handle handle-se"></div>
+          <div class="handle handle-n"></div>
+          <div class="handle handle-s"></div>
+          <div class="handle handle-w"></div>
+          <div class="handle handle-e"></div>
+        </div>
+      `).join('');
+    }
+
+    function selectZone(id) {
+      selectedZoneId = id;
+      renderZones();
+      updateZonesList();
+    }
+
+    function deleteZone(id) {
+      zones = zones.filter(z => z.id !== id);
+      if (selectedZoneId === id) selectedZoneId = null;
+      updateZonesList();
+      renderZones();
+    }
+
+    function clearAllZones() {
+      zones = [];
+      selectedZoneId = null;
+      updateZonesList();
+      renderZones();
+    }
+
+    function exportZones() {
+      if (!originalImage || zones.length === 0) return;
+      const baseName = baseNameInput.value || 'zone';
+
+      zones.forEach((zone, index) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(zone.width);
+        canvas.height = Math.round(zone.height);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(
+          originalImage,
+          Math.round(zone.x), Math.round(zone.y),
+          Math.round(zone.width), Math.round(zone.height),
+          0, 0,
+          Math.round(zone.width), Math.round(zone.height)
+        );
+
+        const link = document.createElement('a');
+        link.download = `${baseName}_${String(index + 1).padStart(2, '0')}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+
+    // Prevent page scroll while interacting on mobile
+    document.body.addEventListener('touchmove', (e) => {
+      if (action) e.preventDefault();
+    }, { passive: false });
+  </script>
+</body>
+</html>
