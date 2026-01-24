@@ -129,6 +129,18 @@
       font-size: 1rem;
     }
 
+    .toolbar-divider {
+      width: 1px;
+      height: 28px;
+      background: rgba(255,255,255,0.15);
+      margin: 0 8px;
+    }
+
+    .undo-btn:disabled, .redo-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
     .canvas-area {
       flex: 1;
       background: rgba(0,0,0,0.4);
@@ -414,6 +426,9 @@
       <div class="canvas-area" id="canvasArea">
         <div class="toolbar" id="toolbar">
           <span class="toolbar-label">Tools:</span>
+          <button class="tool-btn" data-tool="pointer" onclick="setTool('pointer')">
+            <span class="tool-icon">↖</span> Pointer
+          </button>
           <button class="tool-btn active" data-tool="rectangle" onclick="setTool('rectangle')">
             <span class="tool-icon">▢</span> Rectangle
           </button>
@@ -425,6 +440,13 @@
           </button>
           <button class="tool-btn" data-tool="freehand" onclick="setTool('freehand')">
             <span class="tool-icon">✎</span> Freehand
+          </button>
+          <span class="toolbar-divider"></span>
+          <button class="tool-btn undo-btn" onclick="undo()" title="Undo (Ctrl+Z)">
+            <span class="tool-icon">↩</span> Undo
+          </button>
+          <button class="tool-btn redo-btn" onclick="redo()" title="Redo (Ctrl+Y)">
+            <span class="tool-icon">↪</span> Redo
           </button>
         </div>
 
@@ -487,6 +509,11 @@
     let lastClickTime = 0;
     let lastClickPos = { x: 0, y: 0 };
 
+    // Undo/Redo state (max 10 steps each direction)
+    const MAX_HISTORY = 10;
+    let undoStack = [];
+    let redoStack = [];
+
     // DOM elements
     const fileInput = document.getElementById('fileInput');
     const placeholder = document.getElementById('placeholder');
@@ -503,6 +530,7 @@
 
     // Tool hints
     const toolHints = {
+      pointer: 'Click to select zones • Drag anchors to resize • No new shapes will be created',
       rectangle: 'Drag to draw a rectangle • Click zone to select • Drag corners to resize',
       circle: 'Drag to draw a circle/ellipse • Click zone to select • Drag anchors to resize',
       polygon: 'Click to add points • Click first point to close • Double-click edge to add point',
@@ -512,7 +540,9 @@
     function setTool(tool) {
       currentTool = tool;
       document.querySelectorAll('.tool-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tool === tool);
+        if (btn.dataset.tool) {
+          btn.classList.toggle('active', btn.dataset.tool === tool);
+        }
       });
       hintBar.textContent = toolHints[tool];
 
@@ -520,10 +550,8 @@
       cancelDrawing();
 
       // Update cursor
-      if (tool === 'polygon') {
-        imageContainer.style.cursor = 'crosshair';
-      } else if (tool === 'freehand') {
-        imageContainer.style.cursor = 'crosshair';
+      if (tool === 'pointer') {
+        imageContainer.style.cursor = 'default';
       } else {
         imageContainer.style.cursor = 'crosshair';
       }
@@ -538,6 +566,79 @@
       renderZones();
     }
 
+    // Save current state for undo
+    function saveState() {
+      const state = {
+        zones: JSON.parse(JSON.stringify(zones)),
+        selectedZoneId: selectedZoneId
+      };
+      undoStack.push(state);
+      if (undoStack.length > MAX_HISTORY) {
+        undoStack.shift();
+      }
+      // Clear redo stack when new action is performed
+      redoStack = [];
+      updateUndoRedoButtons();
+    }
+
+    // Undo last action
+    function undo() {
+      if (undoStack.length === 0) return;
+
+      // Save current state to redo stack
+      const currentState = {
+        zones: JSON.parse(JSON.stringify(zones)),
+        selectedZoneId: selectedZoneId
+      };
+      redoStack.push(currentState);
+      if (redoStack.length > MAX_HISTORY) {
+        redoStack.shift();
+      }
+
+      // Restore previous state
+      const previousState = undoStack.pop();
+      zones = previousState.zones;
+      selectedZoneId = previousState.selectedZoneId;
+
+      cancelDrawing();
+      updateZonesList();
+      renderZones();
+      updateUndoRedoButtons();
+    }
+
+    // Redo last undone action
+    function redo() {
+      if (redoStack.length === 0) return;
+
+      // Save current state to undo stack
+      const currentState = {
+        zones: JSON.parse(JSON.stringify(zones)),
+        selectedZoneId: selectedZoneId
+      };
+      undoStack.push(currentState);
+      if (undoStack.length > MAX_HISTORY) {
+        undoStack.shift();
+      }
+
+      // Restore next state
+      const nextState = redoStack.pop();
+      zones = nextState.zones;
+      selectedZoneId = nextState.selectedZoneId;
+
+      cancelDrawing();
+      updateZonesList();
+      renderZones();
+      updateUndoRedoButtons();
+    }
+
+    // Update undo/redo button states
+    function updateUndoRedoButtons() {
+      const undoBtn = document.querySelector('.undo-btn');
+      const redoBtn = document.querySelector('.redo-btn');
+      if (undoBtn) undoBtn.disabled = undoStack.length === 0;
+      if (redoBtn) redoBtn.disabled = redoStack.length === 0;
+    }
+
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -549,9 +650,12 @@
           originalImage = img;
           zones = [];
           selectedZoneId = null;
+          undoStack = [];
+          redoStack = [];
           cancelDrawing();
           updateZonesList();
           renderZones();
+          updateUndoRedoButtons();
 
           const maxWidth = canvasArea.clientWidth - 24;
           const maxHeight = window.innerHeight * 0.5;
@@ -770,6 +874,7 @@
         if (zone && (zone.type === 'polygon' || zone.type === 'freehand')) {
           const edgeIndex = findEdgeAtPos(pos.x, pos.y, zone);
           if (edgeIndex >= 0) {
+            saveState();
             addAnchorToEdge(zone, edgeIndex, pos);
             return;
           }
@@ -781,6 +886,7 @@
       if (selectedZone) {
         const anchorIndex = findAnchorAtPos(pos.x, pos.y, selectedZone);
         if (anchorIndex >= 0) {
+          saveState();
           action = 'resize-anchor';
           draggedAnchorIndex = anchorIndex;
           startZone = JSON.parse(JSON.stringify(selectedZone));
@@ -793,13 +899,22 @@
       if (clickedZone) {
         selectedZoneId = clickedZone.id;
         action = 'move';
+        saveState();
         startZone = JSON.parse(JSON.stringify(clickedZone));
         renderZones();
         updateZonesList();
         return;
       }
 
-      // Drawing new shape
+      // Pointer tool: only selection, no drawing
+      if (currentTool === 'pointer') {
+        selectedZoneId = null;
+        renderZones();
+        updateZonesList();
+        return;
+      }
+
+      // Drawing new shape (for rectangle/circle tools)
       selectedZoneId = null;
       action = 'draw';
       renderZones();
@@ -834,6 +949,7 @@
 
     function finishPolygon() {
       if (polygonPoints.length >= 3) {
+        saveState();
         const bounds = getPointsBounds(polygonPoints);
         const newZone = {
           id: Date.now(),
@@ -869,6 +985,7 @@
 
     function finishFreehand() {
       if (freehandPoints.length >= 5) {
+        saveState();
         // Simplify the path to reduce points
         const simplified = simplifyPath(freehandPoints, 3);
         const bounds = getPointsBounds(simplified);
@@ -1194,6 +1311,7 @@
         const height = bottom - top;
 
         if (width > 10 && height > 10) {
+          saveState();
           const newZone = {
             id: Date.now(),
             type: currentTool === 'circle' ? 'circle' : 'rectangle',
@@ -1237,6 +1355,12 @@
         if (selectedZoneId && !isDrawingPolygon && !isDrawingFreehand) {
           deleteZone(selectedZoneId);
         }
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        redo();
       }
     });
 
@@ -1396,6 +1520,7 @@
     }
 
     function deleteZone(id) {
+      saveState();
       zones = zones.filter(z => z.id !== id);
       if (selectedZoneId === id) selectedZoneId = null;
       updateZonesList();
@@ -1403,6 +1528,9 @@
     }
 
     function clearAllZones() {
+      if (zones.length > 0) {
+        saveState();
+      }
       zones = [];
       selectedZoneId = null;
       cancelDrawing();
@@ -1416,35 +1544,42 @@
 
       zones.forEach((zone, index) => {
         const canvas = document.createElement('canvas');
-        canvas.width = Math.round(zone.width);
-        canvas.height = Math.round(zone.height);
+        // Use ceil to ensure we don't cut off any pixels at boundaries
+        const canvasWidth = Math.ceil(zone.width);
+        const canvasHeight = Math.ceil(zone.height);
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
         const ctx = canvas.getContext('2d');
 
+        // Disable image smoothing for pixel-perfect quality at original resolution
+        ctx.imageSmoothingEnabled = false;
+
         if (zone.type === 'rectangle') {
+          // Use precise coordinates for highest quality
           ctx.drawImage(
             originalImage,
-            Math.round(zone.x), Math.round(zone.y),
-            Math.round(zone.width), Math.round(zone.height),
+            zone.x, zone.y,
+            zone.width, zone.height,
             0, 0,
-            Math.round(zone.width), Math.round(zone.height)
+            canvasWidth, canvasHeight
           );
         }
         else if (zone.type === 'circle') {
           // Draw full bounding box first
           ctx.drawImage(
             originalImage,
-            Math.round(zone.x), Math.round(zone.y),
-            Math.round(zone.width), Math.round(zone.height),
+            zone.x, zone.y,
+            zone.width, zone.height,
             0, 0,
-            Math.round(zone.width), Math.round(zone.height)
+            canvasWidth, canvasHeight
           );
 
           // Apply elliptical mask
           ctx.globalCompositeOperation = 'destination-in';
           ctx.beginPath();
           ctx.ellipse(
-            zone.width / 2, zone.height / 2,
-            zone.width / 2, zone.height / 2,
+            canvasWidth / 2, canvasHeight / 2,
+            canvasWidth / 2, canvasHeight / 2,
             0, 0, Math.PI * 2
           );
           ctx.fill();
@@ -1454,8 +1589,9 @@
           ctx.save();
           ctx.beginPath();
           zone.points.forEach((p, i) => {
-            const x = p.x - zone.x;
-            const y = p.y - zone.y;
+            // Scale points to canvas coordinates
+            const x = (p.x - zone.x) * (canvasWidth / zone.width);
+            const y = (p.y - zone.y) * (canvasHeight / zone.height);
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
           });
@@ -1465,24 +1601,26 @@
           // Draw image
           ctx.drawImage(
             originalImage,
-            Math.round(zone.x), Math.round(zone.y),
-            Math.round(zone.width), Math.round(zone.height),
+            zone.x, zone.y,
+            zone.width, zone.height,
             0, 0,
-            Math.round(zone.width), Math.round(zone.height)
+            canvasWidth, canvasHeight
           );
           ctx.restore();
 
           // Apply mask for transparent background outside polygon
           const maskCanvas = document.createElement('canvas');
-          maskCanvas.width = canvas.width;
-          maskCanvas.height = canvas.height;
+          maskCanvas.width = canvasWidth;
+          maskCanvas.height = canvasHeight;
           const maskCtx = maskCanvas.getContext('2d');
+          maskCtx.imageSmoothingEnabled = false;
 
           maskCtx.fillStyle = 'white';
           maskCtx.beginPath();
           zone.points.forEach((p, i) => {
-            const x = p.x - zone.x;
-            const y = p.y - zone.y;
+            // Scale points to canvas coordinates
+            const x = (p.x - zone.x) * (canvasWidth / zone.width);
+            const y = (p.y - zone.y) * (canvasHeight / zone.height);
             if (i === 0) maskCtx.moveTo(x, y);
             else maskCtx.lineTo(x, y);
           });
@@ -1495,6 +1633,7 @@
 
         const link = document.createElement('a');
         link.download = `${baseName}_${String(index + 1).padStart(2, '0')}.png`;
+        // Export as PNG with maximum quality (PNG is lossless)
         link.href = canvas.toDataURL('image/png');
         link.click();
       });
@@ -1505,8 +1644,9 @@
       if (action || isDrawingPolygon || isDrawingFreehand) e.preventDefault();
     }, { passive: false });
 
-    // Initialize hint
+    // Initialize hint and button states
     setTool('rectangle');
+    updateUndoRedoButtons();
   </script>
 </body>
 </html>
