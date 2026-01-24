@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    
+
     body {
       min-height: 100vh;
       min-height: -webkit-fill-available;
@@ -17,11 +17,11 @@
       padding: 12px;
       overflow-x: hidden;
     }
-    
+
     html { height: -webkit-fill-available; }
-    
+
     .container { max-width: 1400px; margin: 0 auto; }
-    
+
     header {
       display: flex;
       align-items: center;
@@ -34,7 +34,7 @@
       flex-wrap: wrap;
       gap: 10px;
     }
-    
+
     h1 {
       font-size: 1.2rem;
       font-weight: 700;
@@ -43,9 +43,9 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
-    
+
     .header-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
-    
+
     .btn {
       padding: 12px 18px;
       border-radius: 8px;
@@ -57,26 +57,78 @@
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
     }
-    
+
     .load-btn {
       background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
       color: #0a0a0a;
       box-shadow: 0 4px 15px rgba(0,212,255,0.3);
     }
-    
+
     .clear-btn {
       background: rgba(255,100,100,0.2);
       border: 1px solid rgba(255,100,100,0.4);
       color: #ff6464;
     }
-    
+
     .main-content { display: flex; flex-direction: column; gap: 12px; }
-    
+
     @media (min-width: 900px) {
       .main-content { flex-direction: row; gap: 20px; }
       .sidebar { width: 280px; }
     }
-    
+
+    /* Toolbar styles */
+    .toolbar {
+      display: flex;
+      gap: 6px;
+      padding: 10px 14px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .toolbar-label {
+      font-size: 0.75rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-right: 8px;
+    }
+
+    .tool-btn {
+      padding: 10px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8rem;
+      border: 1px solid rgba(255,255,255,0.1);
+      font-family: inherit;
+      background: rgba(255,255,255,0.05);
+      color: #888;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tool-btn:hover {
+      background: rgba(255,255,255,0.1);
+      color: #aaa;
+    }
+
+    .tool-btn.active {
+      background: linear-gradient(135deg, #7b68ee 0%, #5a4fcf 100%);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 2px 10px rgba(123,104,238,0.3);
+    }
+
+    .tool-icon {
+      font-size: 1rem;
+    }
+
     .canvas-area {
       flex: 1;
       background: rgba(0,0,0,0.4);
@@ -84,90 +136,147 @@
       border: 1px solid rgba(255,255,255,0.08);
       padding: 12px;
       display: flex;
-      align-items: center;
-      justify-content: center;
+      flex-direction: column;
       min-height: 300px;
       position: relative;
       overflow: hidden;
       touch-action: none;
     }
-    
+
+    .canvas-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .placeholder {
       text-align: center;
       color: #666;
     }
-    
+
     .placeholder-icon { font-size: 3rem; margin-bottom: 16px; }
-    
+
     .image-container {
       position: relative;
       display: none;
       touch-action: none;
-      cursor: crosshair;
     }
-    
+
     .image-container img {
       display: block;
       pointer-events: none;
       -webkit-user-drag: none;
       user-select: none;
     }
-    
-    .zone {
+
+    /* SVG overlay for drawing shapes */
+    .svg-overlay {
       position: absolute;
-      border: 2px solid #00d4ff;
-      background: rgba(0,212,255,0.15);
-    }
-    
-    .zone.selected {
-      border-color: #7b68ee;
-      background: rgba(123,104,238,0.2);
-    }
-    
-    .zone-label {
-      position: absolute;
-      top: 4px;
-      left: 4px;
-      background: #00d4ff;
-      color: #0a0a0a;
-      padding: 3px 10px;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      font-weight: 700;
-    }
-    
-    .zone.selected .zone-label {
-      background: #7b68ee;
-    }
-    
-    .handle {
-      position: absolute;
-      width: 22px;
-      height: 22px;
-      background: #7b68ee;
-      border: 2px solid #fff;
-      border-radius: 4px;
-      display: none;
-    }
-    
-    .zone.selected .handle { display: block; }
-    
-    .handle-nw { top: -11px; left: -11px; cursor: nwse-resize; }
-    .handle-ne { top: -11px; right: -11px; cursor: nesw-resize; }
-    .handle-sw { bottom: -11px; left: -11px; cursor: nesw-resize; }
-    .handle-se { bottom: -11px; right: -11px; cursor: nwse-resize; }
-    .handle-n { top: -11px; left: 50%; margin-left: -11px; cursor: ns-resize; }
-    .handle-s { bottom: -11px; left: 50%; margin-left: -11px; cursor: ns-resize; }
-    .handle-w { top: 50%; left: -11px; margin-top: -11px; cursor: ew-resize; }
-    .handle-e { top: 50%; right: -11px; margin-top: -11px; cursor: ew-resize; }
-    
-    .drawing-rect {
-      position: absolute;
-      border: 2px dashed #7b68ee;
-      background: rgba(123,104,238,0.2);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       pointer-events: none;
     }
-    
+
+    .svg-overlay.interactive {
+      pointer-events: auto;
+    }
+
+    /* Zone shapes */
+    .zone-shape {
+      fill: rgba(0,212,255,0.15);
+      stroke: #00d4ff;
+      stroke-width: 2;
+      cursor: move;
+      pointer-events: auto;
+    }
+
+    .zone-shape.selected {
+      fill: rgba(123,104,238,0.2);
+      stroke: #7b68ee;
+    }
+
+    .zone-shape:hover {
+      fill: rgba(0,212,255,0.25);
+    }
+
+    .zone-shape.selected:hover {
+      fill: rgba(123,104,238,0.3);
+    }
+
+    /* Anchor points */
+    .anchor-point {
+      fill: #7b68ee;
+      stroke: #fff;
+      stroke-width: 2;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    .anchor-point:hover {
+      fill: #9d8eff;
+      transform-origin: center;
+    }
+
+    .anchor-point.first-anchor {
+      fill: #00d4ff;
+      stroke: #fff;
+    }
+
+    .anchor-point.first-anchor:hover {
+      fill: #33ddff;
+    }
+
+    /* Drawing preview */
+    .drawing-preview {
+      fill: rgba(123,104,238,0.2);
+      stroke: #7b68ee;
+      stroke-width: 2;
+      stroke-dasharray: 5,5;
+      pointer-events: none;
+    }
+
+    .drawing-line {
+      stroke: #7b68ee;
+      stroke-width: 2;
+      stroke-dasharray: 5,5;
+      pointer-events: none;
+    }
+
+    /* Zone labels */
+    .zone-label-svg {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      fill: #0a0a0a;
+      pointer-events: none;
+    }
+
+    .zone-label-bg {
+      fill: #00d4ff;
+      pointer-events: none;
+    }
+
+    .zone-label-bg.selected {
+      fill: #7b68ee;
+    }
+
+    /* Edge highlight for adding anchors */
+    .edge-highlight {
+      stroke: #ffcc00;
+      stroke-width: 4;
+      stroke-linecap: round;
+      pointer-events: auto;
+      cursor: crosshair;
+      opacity: 0;
+    }
+
+    .edge-highlight:hover {
+      opacity: 0.6;
+    }
+
     .sidebar {
       background: rgba(255,255,255,0.03);
       border-radius: 12px;
@@ -177,7 +286,7 @@
       flex-direction: column;
       gap: 12px;
     }
-    
+
     .field-label {
       display: block;
       margin-bottom: 8px;
@@ -186,7 +295,7 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
-    
+
     .text-input {
       width: 100%;
       padding: 14px;
@@ -198,22 +307,22 @@
       font-size: 16px;
       -webkit-appearance: none;
     }
-    
+
     .text-input:focus {
       outline: none;
       border-color: #00d4ff;
     }
-    
+
     .zones-list { overflow: auto; max-height: 200px; }
-    
+
     @media (min-width: 900px) {
       .zones-list { flex: 1; max-height: none; }
     }
-    
+
     .empty-msg { color: #555; font-size: 0.85rem; }
-    
+
     .zone-items { display: flex; flex-direction: column; gap: 8px; }
-    
+
     .zone-item {
       display: flex;
       align-items: center;
@@ -225,16 +334,24 @@
       font-size: 0.85rem;
       cursor: pointer;
     }
-    
+
     .zone-item.selected {
       background: rgba(123,104,238,0.2);
       border-color: rgba(123,104,238,0.5);
     }
-    
+
     .zone-item strong { color: #00d4ff; }
     .zone-item.selected strong { color: #7b68ee; }
     .zone-item .dims { color: #666; margin-left: 8px; }
-    
+    .zone-item .type-badge {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.1);
+      color: #888;
+      margin-left: 6px;
+    }
+
     .delete-btn {
       background: rgba(255,100,100,0.2);
       border: 1px solid rgba(255,100,100,0.4);
@@ -247,7 +364,7 @@
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
     }
-    
+
     .export-btn {
       padding: 16px 20px;
       background: linear-gradient(135deg, #7b68ee 0%, #5a4fcf 100%);
@@ -263,14 +380,14 @@
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
     }
-    
+
     .export-btn:disabled {
       background: rgba(100,100,100,0.3);
       color: #666;
       cursor: not-allowed;
       box-shadow: none;
     }
-    
+
     .hint-bar {
       background: rgba(0,0,0,0.3);
       border-radius: 8px;
@@ -278,6 +395,7 @@
       font-size: 0.8rem;
       text-align: center;
       color: #888;
+      line-height: 1.5;
     }
   </style>
 </head>
@@ -294,22 +412,39 @@
 
     <div class="main-content">
       <div class="canvas-area" id="canvasArea">
-        <div class="placeholder" id="placeholder">
-          <div class="placeholder-icon">📷</div>
-          <p>Load an image to begin</p>
+        <div class="toolbar" id="toolbar">
+          <span class="toolbar-label">Tools:</span>
+          <button class="tool-btn active" data-tool="rectangle" onclick="setTool('rectangle')">
+            <span class="tool-icon">▢</span> Rectangle
+          </button>
+          <button class="tool-btn" data-tool="circle" onclick="setTool('circle')">
+            <span class="tool-icon">○</span> Circle
+          </button>
+          <button class="tool-btn" data-tool="polygon" onclick="setTool('polygon')">
+            <span class="tool-icon">⬡</span> Polygon
+          </button>
+          <button class="tool-btn" data-tool="freehand" onclick="setTool('freehand')">
+            <span class="tool-icon">✎</span> Freehand
+          </button>
         </div>
-        <div class="image-container" id="imageContainer">
-          <img id="mainImage" src="" alt="Loaded image">
-          <div id="zonesOverlay"></div>
-          <div class="drawing-rect" id="drawingRect" style="display: none;"></div>
+
+        <div class="canvas-content">
+          <div class="placeholder" id="placeholder">
+            <div class="placeholder-icon">📷</div>
+            <p>Load an image to begin</p>
+          </div>
+          <div class="image-container" id="imageContainer">
+            <img id="mainImage" src="" alt="Loaded image">
+            <svg class="svg-overlay" id="svgOverlay"></svg>
+          </div>
         </div>
       </div>
 
       <div class="sidebar">
-        <div class="hint-bar">
-          Drag empty space to draw • Click zone to select • Drag to move • Use handles to resize
+        <div class="hint-bar" id="hintBar">
+          Select a tool and draw on the image
         </div>
-        
+
         <div>
           <label class="field-label">Base Filename</label>
           <input type="text" id="baseName" class="text-input" value="zone" placeholder="zone">
@@ -317,7 +452,7 @@
 
         <div class="zones-list">
           <div class="field-label">Zones (<span id="zoneCount">0</span>)</div>
-          <p class="empty-msg" id="emptyMsg">Draw rectangles on the image</p>
+          <p class="empty-msg" id="emptyMsg">Draw shapes on the image</p>
           <div class="zone-items" id="zoneItems"></div>
         </div>
 
@@ -327,29 +462,81 @@
   </div>
 
   <script>
+    // State
     let originalImage = null;
     let scale = 1;
     let zones = [];
     let selectedZoneId = null;
-    
-    // Interaction state
-    let action = null; // 'draw', 'move', 'resize'
-    let activeHandle = null;
-    let startX = 0, startY = 0;
-    let startZone = null; // snapshot of zone at interaction start
+    let currentTool = 'rectangle';
 
+    // Interaction state
+    let action = null;
+    let startX = 0, startY = 0;
+    let startZone = null;
+    let draggedAnchorIndex = null;
+
+    // Polygon drawing state
+    let polygonPoints = [];
+    let isDrawingPolygon = false;
+
+    // Freehand drawing state
+    let freehandPoints = [];
+    let isDrawingFreehand = false;
+
+    // Double-click detection
+    let lastClickTime = 0;
+    let lastClickPos = { x: 0, y: 0 };
+
+    // DOM elements
     const fileInput = document.getElementById('fileInput');
     const placeholder = document.getElementById('placeholder');
     const imageContainer = document.getElementById('imageContainer');
     const mainImage = document.getElementById('mainImage');
-    const zonesOverlay = document.getElementById('zonesOverlay');
-    const drawingRect = document.getElementById('drawingRect');
+    const svgOverlay = document.getElementById('svgOverlay');
     const canvasArea = document.getElementById('canvasArea');
     const zoneCount = document.getElementById('zoneCount');
     const emptyMsg = document.getElementById('emptyMsg');
     const zoneItems = document.getElementById('zoneItems');
     const exportBtn = document.getElementById('exportBtn');
     const baseNameInput = document.getElementById('baseName');
+    const hintBar = document.getElementById('hintBar');
+
+    // Tool hints
+    const toolHints = {
+      rectangle: 'Drag to draw a rectangle • Click zone to select • Drag corners to resize',
+      circle: 'Drag to draw a circle/ellipse • Click zone to select • Drag anchors to resize',
+      polygon: 'Click to add points • Click first point to close • Double-click edge to add point',
+      freehand: 'Click and drag to draw freely • Release to complete shape'
+    };
+
+    function setTool(tool) {
+      currentTool = tool;
+      document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tool === tool);
+      });
+      hintBar.textContent = toolHints[tool];
+
+      // Cancel any in-progress drawing
+      cancelDrawing();
+
+      // Update cursor
+      if (tool === 'polygon') {
+        imageContainer.style.cursor = 'crosshair';
+      } else if (tool === 'freehand') {
+        imageContainer.style.cursor = 'crosshair';
+      } else {
+        imageContainer.style.cursor = 'crosshair';
+      }
+    }
+
+    function cancelDrawing() {
+      polygonPoints = [];
+      isDrawingPolygon = false;
+      freehandPoints = [];
+      isDrawingFreehand = false;
+      action = null;
+      renderZones();
+    }
 
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -362,6 +549,7 @@
           originalImage = img;
           zones = [];
           selectedZoneId = null;
+          cancelDrawing();
           updateZonesList();
           renderZones();
 
@@ -379,6 +567,9 @@
           mainImage.style.height = displayHeight + 'px';
           imageContainer.style.width = displayWidth + 'px';
           imageContainer.style.height = displayHeight + 'px';
+          svgOverlay.setAttribute('width', displayWidth);
+          svgOverlay.setAttribute('height', displayHeight);
+          svgOverlay.setAttribute('viewBox', `0 0 ${displayWidth} ${displayHeight}`);
 
           placeholder.style.display = 'none';
           imageContainer.style.display = 'block';
@@ -391,7 +582,7 @@
     function getEventPos(e) {
       const rect = imageContainer.getBoundingClientRect();
       let clientX, clientY;
-      
+
       if (e.touches && e.touches.length > 0) {
         clientX = e.touches[0].clientX;
         clientY = e.touches[0].clientY;
@@ -402,207 +593,599 @@
         clientX = e.clientX;
         clientY = e.clientY;
       }
-      
+
       return {
-        x: clientX - rect.left,
-        y: clientY - rect.top
+        x: Math.max(0, Math.min(clientX - rect.left, imageContainer.clientWidth)),
+        y: Math.max(0, Math.min(clientY - rect.top, imageContainer.clientHeight))
       };
     }
 
     function findZoneAtPos(x, y) {
-      // Check from top (last) to bottom (first) for proper z-order
       for (let i = zones.length - 1; i >= 0; i--) {
         const z = zones[i];
-        if (x >= z.displayX && x <= z.displayX + z.displayW &&
-            y >= z.displayY && y <= z.displayY + z.displayH) {
+        if (isPointInZone(x, y, z)) {
           return z;
         }
       }
       return null;
     }
 
-    function findHandleAtPos(x, y) {
-      const zone = zones.find(z => z.id === selectedZoneId);
-      if (!zone) return null;
-      
-      const hitSize = 28; // generous hit area
-      const hs = hitSize / 2;
-      
-      const cx = zone.displayX + zone.displayW / 2;
-      const cy = zone.displayY + zone.displayH / 2;
-      
-      const handles = {
-        'nw': { hx: zone.displayX, hy: zone.displayY },
-        'ne': { hx: zone.displayX + zone.displayW, hy: zone.displayY },
-        'sw': { hx: zone.displayX, hy: zone.displayY + zone.displayH },
-        'se': { hx: zone.displayX + zone.displayW, hy: zone.displayY + zone.displayH },
-        'n':  { hx: cx, hy: zone.displayY },
-        's':  { hx: cx, hy: zone.displayY + zone.displayH },
-        'w':  { hx: zone.displayX, hy: cy },
-        'e':  { hx: zone.displayX + zone.displayW, hy: cy },
-      };
-      
-      for (const [name, pos] of Object.entries(handles)) {
-        if (x >= pos.hx - hs && x <= pos.hx + hs && y >= pos.hy - hs && y <= pos.hy + hs) {
-          return name;
+    function isPointInZone(x, y, zone) {
+      if (zone.type === 'rectangle') {
+        return x >= zone.displayX && x <= zone.displayX + zone.displayW &&
+               y >= zone.displayY && y <= zone.displayY + zone.displayH;
+      } else if (zone.type === 'circle') {
+        const cx = zone.displayX + zone.displayW / 2;
+        const cy = zone.displayY + zone.displayH / 2;
+        const rx = zone.displayW / 2;
+        const ry = zone.displayH / 2;
+        return Math.pow((x - cx) / rx, 2) + Math.pow((y - cy) / ry, 2) <= 1;
+      } else if (zone.type === 'polygon' || zone.type === 'freehand') {
+        return isPointInPolygon(x, y, zone.displayPoints);
+      }
+      return false;
+    }
+
+    function isPointInPolygon(x, y, points) {
+      if (!points || points.length < 3) return false;
+      let inside = false;
+      for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+        const xi = points[i].x, yi = points[i].y;
+        const xj = points[j].x, yj = points[j].y;
+        if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+          inside = !inside;
         }
       }
-      return null;
+      return inside;
+    }
+
+    function findAnchorAtPos(x, y, zone) {
+      if (!zone) return -1;
+      const hitSize = 14;
+
+      if (zone.type === 'rectangle') {
+        const anchors = getRectAnchors(zone);
+        for (let i = 0; i < anchors.length; i++) {
+          if (Math.abs(x - anchors[i].x) <= hitSize && Math.abs(y - anchors[i].y) <= hitSize) {
+            return i;
+          }
+        }
+      } else if (zone.type === 'circle') {
+        const anchors = getCircleAnchors(zone);
+        for (let i = 0; i < anchors.length; i++) {
+          if (Math.abs(x - anchors[i].x) <= hitSize && Math.abs(y - anchors[i].y) <= hitSize) {
+            return i;
+          }
+        }
+      } else if (zone.type === 'polygon' || zone.type === 'freehand') {
+        for (let i = 0; i < zone.displayPoints.length; i++) {
+          if (Math.abs(x - zone.displayPoints[i].x) <= hitSize &&
+              Math.abs(y - zone.displayPoints[i].y) <= hitSize) {
+            return i;
+          }
+        }
+      }
+      return -1;
+    }
+
+    function getRectAnchors(zone) {
+      const x = zone.displayX, y = zone.displayY;
+      const w = zone.displayW, h = zone.displayH;
+      return [
+        { x: x, y: y, type: 'nw' },
+        { x: x + w, y: y, type: 'ne' },
+        { x: x + w, y: y + h, type: 'se' },
+        { x: x, y: y + h, type: 'sw' },
+        { x: x + w/2, y: y, type: 'n' },
+        { x: x + w, y: y + h/2, type: 'e' },
+        { x: x + w/2, y: y + h, type: 's' },
+        { x: x, y: y + h/2, type: 'w' }
+      ];
+    }
+
+    function getCircleAnchors(zone) {
+      const cx = zone.displayX + zone.displayW / 2;
+      const cy = zone.displayY + zone.displayH / 2;
+      const rx = zone.displayW / 2;
+      const ry = zone.displayH / 2;
+      return [
+        { x: cx, y: cy - ry, type: 'n' },
+        { x: cx + rx, y: cy, type: 'e' },
+        { x: cx, y: cy + ry, type: 's' },
+        { x: cx - rx, y: cy, type: 'w' }
+      ];
+    }
+
+    function findEdgeAtPos(x, y, zone) {
+      if (!zone || (zone.type !== 'polygon' && zone.type !== 'freehand')) return -1;
+      const hitDist = 10;
+      const points = zone.displayPoints;
+
+      for (let i = 0; i < points.length; i++) {
+        const p1 = points[i];
+        const p2 = points[(i + 1) % points.length];
+        const dist = pointToLineDistance(x, y, p1.x, p1.y, p2.x, p2.y);
+        if (dist <= hitDist) {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    function pointToLineDistance(px, py, x1, y1, x2, y2) {
+      const A = px - x1;
+      const B = py - y1;
+      const C = x2 - x1;
+      const D = y2 - y1;
+      const dot = A * C + B * D;
+      const lenSq = C * C + D * D;
+      let param = -1;
+      if (lenSq !== 0) param = dot / lenSq;
+
+      let xx, yy;
+      if (param < 0) {
+        xx = x1; yy = y1;
+      } else if (param > 1) {
+        xx = x2; yy = y2;
+      } else {
+        xx = x1 + param * C;
+        yy = y1 + param * D;
+      }
+
+      return Math.sqrt((px - xx) ** 2 + (py - yy) ** 2);
     }
 
     function startInteraction(e) {
       if (!originalImage) return;
       e.preventDefault();
-      
+
       const pos = getEventPos(e);
+      const now = Date.now();
+
+      // Double-click detection
+      const isDoubleClick = (now - lastClickTime < 300) &&
+                           (Math.abs(pos.x - lastClickPos.x) < 10) &&
+                           (Math.abs(pos.y - lastClickPos.y) < 10);
+      lastClickTime = now;
+      lastClickPos = { x: pos.x, y: pos.y };
+
       startX = pos.x;
       startY = pos.y;
 
-      // Priority 1: Check if clicking a resize handle on selected zone
-      const handle = findHandleAtPos(pos.x, pos.y);
-      if (handle) {
-        action = 'resize';
-        activeHandle = handle;
-        const zone = zones.find(z => z.id === selectedZoneId);
-        startZone = { ...zone };
+      // Handle polygon tool
+      if (currentTool === 'polygon') {
+        handlePolygonClick(pos, isDoubleClick);
         return;
       }
 
-      // Priority 2: Check if clicking inside a zone
+      // Handle freehand tool
+      if (currentTool === 'freehand') {
+        handleFreehandStart(pos);
+        return;
+      }
+
+      // Check for double-click on edge to add anchor
+      if (isDoubleClick && selectedZoneId) {
+        const zone = zones.find(z => z.id === selectedZoneId);
+        if (zone && (zone.type === 'polygon' || zone.type === 'freehand')) {
+          const edgeIndex = findEdgeAtPos(pos.x, pos.y, zone);
+          if (edgeIndex >= 0) {
+            addAnchorToEdge(zone, edgeIndex, pos);
+            return;
+          }
+        }
+      }
+
+      // Check if clicking an anchor on selected zone
+      const selectedZone = zones.find(z => z.id === selectedZoneId);
+      if (selectedZone) {
+        const anchorIndex = findAnchorAtPos(pos.x, pos.y, selectedZone);
+        if (anchorIndex >= 0) {
+          action = 'resize-anchor';
+          draggedAnchorIndex = anchorIndex;
+          startZone = JSON.parse(JSON.stringify(selectedZone));
+          return;
+        }
+      }
+
+      // Check if clicking inside a zone
       const clickedZone = findZoneAtPos(pos.x, pos.y);
       if (clickedZone) {
         selectedZoneId = clickedZone.id;
         action = 'move';
-        startZone = { ...clickedZone };
+        startZone = JSON.parse(JSON.stringify(clickedZone));
         renderZones();
         updateZonesList();
         return;
       }
 
-      // Priority 3: Drawing new zone on empty space
+      // Drawing new shape
       selectedZoneId = null;
       action = 'draw';
-      drawingRect.style.left = pos.x + 'px';
-      drawingRect.style.top = pos.y + 'px';
-      drawingRect.style.width = '0px';
-      drawingRect.style.height = '0px';
-      drawingRect.style.display = 'block';
       renderZones();
       updateZonesList();
     }
 
+    function handlePolygonClick(pos, isDoubleClick) {
+      if (!isDrawingPolygon) {
+        // Start new polygon
+        isDrawingPolygon = true;
+        polygonPoints = [{ x: pos.x, y: pos.y }];
+        selectedZoneId = null;
+        renderZones();
+        return;
+      }
+
+      // Check if clicking on first point to close polygon
+      if (polygonPoints.length >= 3) {
+        const firstPoint = polygonPoints[0];
+        const dist = Math.sqrt((pos.x - firstPoint.x) ** 2 + (pos.y - firstPoint.y) ** 2);
+        if (dist < 15) {
+          // Close polygon
+          finishPolygon();
+          return;
+        }
+      }
+
+      // Add new point
+      polygonPoints.push({ x: pos.x, y: pos.y });
+      renderZones();
+    }
+
+    function finishPolygon() {
+      if (polygonPoints.length >= 3) {
+        const bounds = getPointsBounds(polygonPoints);
+        const newZone = {
+          id: Date.now(),
+          type: 'polygon',
+          points: polygonPoints.map(p => ({ x: p.x / scale, y: p.y / scale })),
+          displayPoints: [...polygonPoints],
+          x: bounds.x / scale,
+          y: bounds.y / scale,
+          width: bounds.width / scale,
+          height: bounds.height / scale,
+          displayX: bounds.x,
+          displayY: bounds.y,
+          displayW: bounds.width,
+          displayH: bounds.height
+        };
+        zones.push(newZone);
+        selectedZoneId = newZone.id;
+        updateZonesList();
+      }
+
+      polygonPoints = [];
+      isDrawingPolygon = false;
+      renderZones();
+    }
+
+    function handleFreehandStart(pos) {
+      isDrawingFreehand = true;
+      freehandPoints = [{ x: pos.x, y: pos.y }];
+      action = 'freehand';
+      selectedZoneId = null;
+      renderZones();
+    }
+
+    function finishFreehand() {
+      if (freehandPoints.length >= 5) {
+        // Simplify the path to reduce points
+        const simplified = simplifyPath(freehandPoints, 3);
+        const bounds = getPointsBounds(simplified);
+
+        const newZone = {
+          id: Date.now(),
+          type: 'freehand',
+          points: simplified.map(p => ({ x: p.x / scale, y: p.y / scale })),
+          displayPoints: [...simplified],
+          x: bounds.x / scale,
+          y: bounds.y / scale,
+          width: bounds.width / scale,
+          height: bounds.height / scale,
+          displayX: bounds.x,
+          displayY: bounds.y,
+          displayW: bounds.width,
+          displayH: bounds.height
+        };
+        zones.push(newZone);
+        selectedZoneId = newZone.id;
+        updateZonesList();
+      }
+
+      freehandPoints = [];
+      isDrawingFreehand = false;
+      action = null;
+      renderZones();
+    }
+
+    function simplifyPath(points, tolerance) {
+      if (points.length < 3) return points;
+
+      // Douglas-Peucker algorithm
+      let maxDist = 0;
+      let maxIndex = 0;
+      const first = points[0];
+      const last = points[points.length - 1];
+
+      for (let i = 1; i < points.length - 1; i++) {
+        const dist = pointToLineDistance(points[i].x, points[i].y,
+                                         first.x, first.y, last.x, last.y);
+        if (dist > maxDist) {
+          maxDist = dist;
+          maxIndex = i;
+        }
+      }
+
+      if (maxDist > tolerance) {
+        const left = simplifyPath(points.slice(0, maxIndex + 1), tolerance);
+        const right = simplifyPath(points.slice(maxIndex), tolerance);
+        return [...left.slice(0, -1), ...right];
+      }
+
+      return [first, last];
+    }
+
+    function getPointsBounds(points) {
+      const xs = points.map(p => p.x);
+      const ys = points.map(p => p.y);
+      const minX = Math.min(...xs);
+      const minY = Math.min(...ys);
+      return {
+        x: minX,
+        y: minY,
+        width: Math.max(...xs) - minX,
+        height: Math.max(...ys) - minY
+      };
+    }
+
+    function addAnchorToEdge(zone, edgeIndex, pos) {
+      const points = zone.displayPoints;
+      const p1 = points[edgeIndex];
+      const p2 = points[(edgeIndex + 1) % points.length];
+
+      // Find closest point on edge
+      const newPoint = getClosestPointOnLine(pos.x, pos.y, p1.x, p1.y, p2.x, p2.y);
+
+      // Insert new point
+      zone.displayPoints.splice(edgeIndex + 1, 0, newPoint);
+      zone.points.splice(edgeIndex + 1, 0, { x: newPoint.x / scale, y: newPoint.y / scale });
+
+      renderZones();
+    }
+
+    function getClosestPointOnLine(px, py, x1, y1, x2, y2) {
+      const A = px - x1;
+      const B = py - y1;
+      const C = x2 - x1;
+      const D = y2 - y1;
+      const dot = A * C + B * D;
+      const lenSq = C * C + D * D;
+      let param = lenSq !== 0 ? dot / lenSq : -1;
+      param = Math.max(0, Math.min(1, param));
+
+      return {
+        x: x1 + param * C,
+        y: y1 + param * D
+      };
+    }
+
     function moveInteraction(e) {
-      if (!action) return;
+      if (!action && !isDrawingPolygon && !isDrawingFreehand) return;
       e.preventDefault();
-      
+
       const pos = getEventPos(e);
       const dx = pos.x - startX;
       const dy = pos.y - startY;
       const imgW = imageContainer.clientWidth;
       const imgH = imageContainer.clientHeight;
 
-      if (action === 'draw') {
-        const left = Math.max(0, Math.min(startX, pos.x));
-        const top = Math.max(0, Math.min(startY, pos.y));
-        const right = Math.min(imgW, Math.max(startX, pos.x));
-        const bottom = Math.min(imgH, Math.max(startY, pos.y));
-        
-        drawingRect.style.left = left + 'px';
-        drawingRect.style.top = top + 'px';
-        drawingRect.style.width = (right - left) + 'px';
-        drawingRect.style.height = (bottom - top) + 'px';
+      if (action === 'freehand' && isDrawingFreehand) {
+        freehandPoints.push({ x: pos.x, y: pos.y });
+        renderZones();
+        return;
       }
-      
+
+      if (isDrawingPolygon) {
+        // Just render to show preview line
+        renderZones(pos);
+        return;
+      }
+
+      if (action === 'draw') {
+        // Drawing rectangle or circle
+        renderZones(null, {
+          x: Math.min(startX, pos.x),
+          y: Math.min(startY, pos.y),
+          w: Math.abs(pos.x - startX),
+          h: Math.abs(pos.y - startY)
+        });
+      }
+
       else if (action === 'move' && startZone) {
         const zone = zones.find(z => z.id === selectedZoneId);
         if (!zone) return;
-        
-        let newX = startZone.displayX + dx;
-        let newY = startZone.displayY + dy;
-        
-        // Constrain to image bounds
-        newX = Math.max(0, Math.min(newX, imgW - zone.displayW));
-        newY = Math.max(0, Math.min(newY, imgH - zone.displayH));
-        
-        zone.displayX = newX;
-        zone.displayY = newY;
-        zone.x = newX / scale;
-        zone.y = newY / scale;
-        
+
+        // Calculate bounds
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        if (zone.type === 'polygon' || zone.type === 'freehand') {
+          startZone.displayPoints.forEach(p => {
+            minX = Math.min(minX, p.x);
+            minY = Math.min(minY, p.y);
+            maxX = Math.max(maxX, p.x);
+            maxY = Math.max(maxY, p.y);
+          });
+        } else {
+          minX = startZone.displayX;
+          minY = startZone.displayY;
+          maxX = startZone.displayX + startZone.displayW;
+          maxY = startZone.displayY + startZone.displayH;
+        }
+
+        // Constrain movement
+        let constrainedDx = dx;
+        let constrainedDy = dy;
+        if (minX + dx < 0) constrainedDx = -minX;
+        if (minY + dy < 0) constrainedDy = -minY;
+        if (maxX + dx > imgW) constrainedDx = imgW - maxX;
+        if (maxY + dy > imgH) constrainedDy = imgH - maxY;
+
+        if (zone.type === 'polygon' || zone.type === 'freehand') {
+          zone.displayPoints = startZone.displayPoints.map(p => ({
+            x: p.x + constrainedDx,
+            y: p.y + constrainedDy
+          }));
+          zone.points = zone.displayPoints.map(p => ({ x: p.x / scale, y: p.y / scale }));
+          const bounds = getPointsBounds(zone.displayPoints);
+          zone.displayX = bounds.x;
+          zone.displayY = bounds.y;
+          zone.displayW = bounds.width;
+          zone.displayH = bounds.height;
+          zone.x = bounds.x / scale;
+          zone.y = bounds.y / scale;
+          zone.width = bounds.width / scale;
+          zone.height = bounds.height / scale;
+        } else {
+          zone.displayX = startZone.displayX + constrainedDx;
+          zone.displayY = startZone.displayY + constrainedDy;
+          zone.x = zone.displayX / scale;
+          zone.y = zone.displayY / scale;
+        }
+
         renderZones();
       }
-      
-      else if (action === 'resize' && startZone && activeHandle) {
+
+      else if (action === 'resize-anchor' && startZone && draggedAnchorIndex !== null) {
         const zone = zones.find(z => z.id === selectedZoneId);
         if (!zone) return;
-        
-        let newX = startZone.displayX;
-        let newY = startZone.displayY;
-        let newW = startZone.displayW;
-        let newH = startZone.displayH;
-        
-        // Adjust based on which handle is being dragged
-        if (activeHandle.includes('w')) {
-          newX = startZone.displayX + dx;
-          newW = startZone.displayW - dx;
+
+        if (zone.type === 'rectangle') {
+          resizeRectangle(zone, pos);
+        } else if (zone.type === 'circle') {
+          resizeCircle(zone, pos);
+        } else if (zone.type === 'polygon' || zone.type === 'freehand') {
+          // Move individual anchor point
+          const constrainedX = Math.max(0, Math.min(pos.x, imgW));
+          const constrainedY = Math.max(0, Math.min(pos.y, imgH));
+          zone.displayPoints[draggedAnchorIndex] = { x: constrainedX, y: constrainedY };
+          zone.points[draggedAnchorIndex] = { x: constrainedX / scale, y: constrainedY / scale };
+
+          const bounds = getPointsBounds(zone.displayPoints);
+          zone.displayX = bounds.x;
+          zone.displayY = bounds.y;
+          zone.displayW = bounds.width;
+          zone.displayH = bounds.height;
+          zone.x = bounds.x / scale;
+          zone.y = bounds.y / scale;
+          zone.width = bounds.width / scale;
+          zone.height = bounds.height / scale;
         }
-        if (activeHandle.includes('e')) {
-          newW = startZone.displayW + dx;
-        }
-        if (activeHandle.includes('n')) {
-          newY = startZone.displayY + dy;
-          newH = startZone.displayH - dy;
-        }
-        if (activeHandle.includes('s')) {
-          newH = startZone.displayH + dy;
-        }
-        
-        // Enforce minimum size
-        const minSize = 20;
-        if (newW < minSize) {
-          if (activeHandle.includes('w')) {
-            newX = startZone.displayX + startZone.displayW - minSize;
-          }
-          newW = minSize;
-        }
-        if (newH < minSize) {
-          if (activeHandle.includes('n')) {
-            newY = startZone.displayY + startZone.displayH - minSize;
-          }
-          newH = minSize;
-        }
-        
-        // Constrain to image bounds
-        if (newX < 0) { newW += newX; newX = 0; }
-        if (newY < 0) { newH += newY; newY = 0; }
-        if (newX + newW > imgW) { newW = imgW - newX; }
-        if (newY + newH > imgH) { newH = imgH - newY; }
-        
-        zone.displayX = newX;
-        zone.displayY = newY;
-        zone.displayW = newW;
-        zone.displayH = newH;
-        zone.x = newX / scale;
-        zone.y = newY / scale;
-        zone.width = newW / scale;
-        zone.height = newH / scale;
-        
+
         renderZones();
         updateZonesList();
       }
     }
 
+    function resizeRectangle(zone, pos) {
+      const anchors = getRectAnchors(startZone);
+      const anchor = anchors[draggedAnchorIndex];
+      const imgW = imageContainer.clientWidth;
+      const imgH = imageContainer.clientHeight;
+      const minSize = 20;
+
+      let newX = startZone.displayX;
+      let newY = startZone.displayY;
+      let newW = startZone.displayW;
+      let newH = startZone.displayH;
+
+      const type = anchor.type;
+
+      if (type.includes('w')) {
+        newX = Math.max(0, Math.min(pos.x, startZone.displayX + startZone.displayW - minSize));
+        newW = startZone.displayX + startZone.displayW - newX;
+      }
+      if (type.includes('e')) {
+        newW = Math.max(minSize, Math.min(pos.x - startZone.displayX, imgW - startZone.displayX));
+      }
+      if (type.includes('n')) {
+        newY = Math.max(0, Math.min(pos.y, startZone.displayY + startZone.displayH - minSize));
+        newH = startZone.displayY + startZone.displayH - newY;
+      }
+      if (type.includes('s')) {
+        newH = Math.max(minSize, Math.min(pos.y - startZone.displayY, imgH - startZone.displayY));
+      }
+
+      zone.displayX = newX;
+      zone.displayY = newY;
+      zone.displayW = newW;
+      zone.displayH = newH;
+      zone.x = newX / scale;
+      zone.y = newY / scale;
+      zone.width = newW / scale;
+      zone.height = newH / scale;
+    }
+
+    function resizeCircle(zone, pos) {
+      const anchors = getCircleAnchors(startZone);
+      const anchor = anchors[draggedAnchorIndex];
+      const imgW = imageContainer.clientWidth;
+      const imgH = imageContainer.clientHeight;
+      const minSize = 20;
+
+      const cx = startZone.displayX + startZone.displayW / 2;
+      const cy = startZone.displayY + startZone.displayH / 2;
+
+      let newX = startZone.displayX;
+      let newY = startZone.displayY;
+      let newW = startZone.displayW;
+      let newH = startZone.displayH;
+
+      if (anchor.type === 'n') {
+        const newRy = Math.max(minSize/2, cy - Math.max(0, pos.y));
+        newY = cy - newRy;
+        newH = newRy * 2;
+      } else if (anchor.type === 's') {
+        const newRy = Math.max(minSize/2, Math.min(pos.y, imgH) - cy);
+        newY = cy - newRy;
+        newH = newRy * 2;
+      } else if (anchor.type === 'w') {
+        const newRx = Math.max(minSize/2, cx - Math.max(0, pos.x));
+        newX = cx - newRx;
+        newW = newRx * 2;
+      } else if (anchor.type === 'e') {
+        const newRx = Math.max(minSize/2, Math.min(pos.x, imgW) - cx);
+        newX = cx - newRx;
+        newW = newRx * 2;
+      }
+
+      zone.displayX = newX;
+      zone.displayY = newY;
+      zone.displayW = newW;
+      zone.displayH = newH;
+      zone.x = newX / scale;
+      zone.y = newY / scale;
+      zone.width = newW / scale;
+      zone.height = newH / scale;
+    }
+
     function endInteraction(e) {
+      if (isDrawingFreehand) {
+        finishFreehand();
+        return;
+      }
+
+      if (isDrawingPolygon) {
+        // Don't end polygon on mouseup, it ends on click of first point
+        return;
+      }
+
       if (!action) return;
       e.preventDefault();
-      
+
       if (action === 'draw') {
-        drawingRect.style.display = 'none';
-        
         const pos = getEventPos(e);
         const imgW = imageContainer.clientWidth;
         const imgH = imageContainer.clientHeight;
-        
+
         const left = Math.max(0, Math.min(startX, pos.x));
         const top = Math.max(0, Math.min(startY, pos.y));
         const right = Math.min(imgW, Math.max(startX, pos.x));
@@ -613,6 +1196,7 @@
         if (width > 10 && height > 10) {
           const newZone = {
             id: Date.now(),
+            type: currentTool === 'circle' ? 'circle' : 'rectangle',
             x: left / scale,
             y: top / scale,
             width: width / scale,
@@ -625,13 +1209,13 @@
           zones.push(newZone);
           selectedZoneId = newZone.id;
           updateZonesList();
-          renderZones();
         }
       }
-      
+
       action = null;
-      activeHandle = null;
+      draggedAnchorIndex = null;
       startZone = null;
+      renderZones();
     }
 
     // Mouse events
@@ -645,35 +1229,164 @@
     window.addEventListener('touchend', endInteraction, { passive: false });
     window.addEventListener('touchcancel', endInteraction, { passive: false });
 
+    // Keyboard events
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        cancelDrawing();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedZoneId && !isDrawingPolygon && !isDrawingFreehand) {
+          deleteZone(selectedZoneId);
+        }
+      }
+    });
+
     function updateZonesList() {
       zoneCount.textContent = zones.length;
       emptyMsg.style.display = zones.length === 0 ? 'block' : 'none';
       exportBtn.disabled = zones.length === 0;
       exportBtn.textContent = `Export ${zones.length} Zone${zones.length !== 1 ? 's' : ''}`;
 
-      zoneItems.innerHTML = zones.map((z, i) => `
-        <div class="zone-item ${z.id === selectedZoneId ? 'selected' : ''}" onclick="selectZone(${z.id})">
-          <span><strong>#${i + 1}</strong><span class="dims">${Math.round(z.width)}×${Math.round(z.height)}</span></span>
-          <button class="delete-btn" onclick="event.stopPropagation(); deleteZone(${z.id})">✕</button>
-        </div>
-      `).join('');
+      zoneItems.innerHTML = zones.map((z, i) => {
+        const dims = `${Math.round(z.width)}×${Math.round(z.height)}`;
+        const typeLabel = z.type.charAt(0).toUpperCase() + z.type.slice(1);
+        return `
+          <div class="zone-item ${z.id === selectedZoneId ? 'selected' : ''}" onclick="selectZone(${z.id})">
+            <span>
+              <strong>#${i + 1}</strong>
+              <span class="dims">${dims}</span>
+              <span class="type-badge">${typeLabel}</span>
+            </span>
+            <button class="delete-btn" onclick="event.stopPropagation(); deleteZone(${z.id})">✕</button>
+          </div>
+        `;
+      }).join('');
     }
 
-    function renderZones() {
-      zonesOverlay.innerHTML = zones.map((z, i) => `
-        <div class="zone ${z.id === selectedZoneId ? 'selected' : ''}" 
-             style="left:${z.displayX}px;top:${z.displayY}px;width:${z.displayW}px;height:${z.displayH}px;">
-          <span class="zone-label">${i + 1}</span>
-          <div class="handle handle-nw"></div>
-          <div class="handle handle-ne"></div>
-          <div class="handle handle-sw"></div>
-          <div class="handle handle-se"></div>
-          <div class="handle handle-n"></div>
-          <div class="handle handle-s"></div>
-          <div class="handle handle-w"></div>
-          <div class="handle handle-e"></div>
-        </div>
-      `).join('');
+    function renderZones(mousePos = null, drawPreview = null) {
+      let svg = '';
+
+      // Render existing zones
+      zones.forEach((z, i) => {
+        const isSelected = z.id === selectedZoneId;
+        svg += renderZoneShape(z, i, isSelected);
+      });
+
+      // Render polygon being drawn
+      if (isDrawingPolygon && polygonPoints.length > 0) {
+        // Draw completed segments
+        if (polygonPoints.length > 1) {
+          const pathD = polygonPoints.map((p, i) =>
+            `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`
+          ).join(' ');
+          svg += `<path d="${pathD}" class="drawing-preview" fill="none"/>`;
+        }
+
+        // Draw preview line to mouse position
+        if (mousePos) {
+          const lastPoint = polygonPoints[polygonPoints.length - 1];
+          svg += `<line x1="${lastPoint.x}" y1="${lastPoint.y}" x2="${mousePos.x}" y2="${mousePos.y}" class="drawing-line"/>`;
+        }
+
+        // Draw anchor points
+        polygonPoints.forEach((p, i) => {
+          const isFirst = i === 0;
+          svg += `<circle cx="${p.x}" cy="${p.y}" r="${isFirst ? 8 : 6}" class="anchor-point ${isFirst ? 'first-anchor' : ''}"/>`;
+        });
+      }
+
+      // Render freehand being drawn
+      if (isDrawingFreehand && freehandPoints.length > 1) {
+        const pathD = freehandPoints.map((p, i) =>
+          `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`
+        ).join(' ');
+        svg += `<path d="${pathD}" class="drawing-preview" fill="none"/>`;
+      }
+
+      // Render rectangle/circle preview
+      if (drawPreview && action === 'draw') {
+        if (currentTool === 'circle') {
+          const cx = drawPreview.x + drawPreview.w / 2;
+          const cy = drawPreview.y + drawPreview.h / 2;
+          svg += `<ellipse cx="${cx}" cy="${cy}" rx="${drawPreview.w/2}" ry="${drawPreview.h/2}" class="drawing-preview"/>`;
+        } else {
+          svg += `<rect x="${drawPreview.x}" y="${drawPreview.y}" width="${drawPreview.w}" height="${drawPreview.h}" class="drawing-preview"/>`;
+        }
+      }
+
+      svgOverlay.innerHTML = svg;
+    }
+
+    function renderZoneShape(zone, index, isSelected) {
+      let svg = '';
+      const selectedClass = isSelected ? 'selected' : '';
+
+      if (zone.type === 'rectangle') {
+        svg += `<rect x="${zone.displayX}" y="${zone.displayY}" width="${zone.displayW}" height="${zone.displayH}"
+                      class="zone-shape ${selectedClass}" data-zone-id="${zone.id}"/>`;
+
+        // Label
+        svg += renderZoneLabel(zone.displayX + 4, zone.displayY + 4, index + 1, isSelected);
+
+        // Anchors for selected zone
+        if (isSelected) {
+          const anchors = getRectAnchors(zone);
+          anchors.forEach(a => {
+            svg += `<rect x="${a.x - 6}" y="${a.y - 6}" width="12" height="12" rx="2" class="anchor-point"/>`;
+          });
+        }
+      }
+      else if (zone.type === 'circle') {
+        const cx = zone.displayX + zone.displayW / 2;
+        const cy = zone.displayY + zone.displayH / 2;
+        svg += `<ellipse cx="${cx}" cy="${cy}" rx="${zone.displayW/2}" ry="${zone.displayH/2}"
+                         class="zone-shape ${selectedClass}" data-zone-id="${zone.id}"/>`;
+
+        // Label
+        svg += renderZoneLabel(zone.displayX + 4, zone.displayY + 4, index + 1, isSelected);
+
+        // Anchors for selected zone
+        if (isSelected) {
+          const anchors = getCircleAnchors(zone);
+          anchors.forEach(a => {
+            svg += `<circle cx="${a.x}" cy="${a.y}" r="6" class="anchor-point"/>`;
+          });
+        }
+      }
+      else if (zone.type === 'polygon' || zone.type === 'freehand') {
+        const pathD = zone.displayPoints.map((p, i) =>
+          `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`
+        ).join(' ') + ' Z';
+        svg += `<path d="${pathD}" class="zone-shape ${selectedClass}" data-zone-id="${zone.id}"/>`;
+
+        // Label
+        svg += renderZoneLabel(zone.displayX + 4, zone.displayY + 4, index + 1, isSelected);
+
+        // Anchors and edge highlights for selected zone
+        if (isSelected) {
+          // Edge highlights for adding new anchors
+          for (let i = 0; i < zone.displayPoints.length; i++) {
+            const p1 = zone.displayPoints[i];
+            const p2 = zone.displayPoints[(i + 1) % zone.displayPoints.length];
+            svg += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" class="edge-highlight" data-edge="${i}"/>`;
+          }
+
+          // Anchor points
+          zone.displayPoints.forEach((p, i) => {
+            svg += `<circle cx="${p.x}" cy="${p.y}" r="6" class="anchor-point" data-anchor="${i}"/>`;
+          });
+        }
+      }
+
+      return svg;
+    }
+
+    function renderZoneLabel(x, y, number, isSelected) {
+      const text = String(number);
+      const width = text.length * 8 + 14;
+      return `
+        <rect x="${x}" y="${y}" width="${width}" height="20" rx="4" class="zone-label-bg ${isSelected ? 'selected' : ''}"/>
+        <text x="${x + width/2}" y="${y + 14}" text-anchor="middle" class="zone-label-svg">${number}</text>
+      `;
     }
 
     function selectZone(id) {
@@ -692,6 +1405,7 @@
     function clearAllZones() {
       zones = [];
       selectedZoneId = null;
+      cancelDrawing();
       updateZonesList();
       renderZones();
     }
@@ -705,13 +1419,79 @@
         canvas.width = Math.round(zone.width);
         canvas.height = Math.round(zone.height);
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(
-          originalImage,
-          Math.round(zone.x), Math.round(zone.y),
-          Math.round(zone.width), Math.round(zone.height),
-          0, 0,
-          Math.round(zone.width), Math.round(zone.height)
-        );
+
+        if (zone.type === 'rectangle') {
+          ctx.drawImage(
+            originalImage,
+            Math.round(zone.x), Math.round(zone.y),
+            Math.round(zone.width), Math.round(zone.height),
+            0, 0,
+            Math.round(zone.width), Math.round(zone.height)
+          );
+        }
+        else if (zone.type === 'circle') {
+          // Draw full bounding box first
+          ctx.drawImage(
+            originalImage,
+            Math.round(zone.x), Math.round(zone.y),
+            Math.round(zone.width), Math.round(zone.height),
+            0, 0,
+            Math.round(zone.width), Math.round(zone.height)
+          );
+
+          // Apply elliptical mask
+          ctx.globalCompositeOperation = 'destination-in';
+          ctx.beginPath();
+          ctx.ellipse(
+            zone.width / 2, zone.height / 2,
+            zone.width / 2, zone.height / 2,
+            0, 0, Math.PI * 2
+          );
+          ctx.fill();
+        }
+        else if (zone.type === 'polygon' || zone.type === 'freehand') {
+          // Create clipping path from polygon points
+          ctx.save();
+          ctx.beginPath();
+          zone.points.forEach((p, i) => {
+            const x = p.x - zone.x;
+            const y = p.y - zone.y;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.closePath();
+          ctx.clip();
+
+          // Draw image
+          ctx.drawImage(
+            originalImage,
+            Math.round(zone.x), Math.round(zone.y),
+            Math.round(zone.width), Math.round(zone.height),
+            0, 0,
+            Math.round(zone.width), Math.round(zone.height)
+          );
+          ctx.restore();
+
+          // Apply mask for transparent background outside polygon
+          const maskCanvas = document.createElement('canvas');
+          maskCanvas.width = canvas.width;
+          maskCanvas.height = canvas.height;
+          const maskCtx = maskCanvas.getContext('2d');
+
+          maskCtx.fillStyle = 'white';
+          maskCtx.beginPath();
+          zone.points.forEach((p, i) => {
+            const x = p.x - zone.x;
+            const y = p.y - zone.y;
+            if (i === 0) maskCtx.moveTo(x, y);
+            else maskCtx.lineTo(x, y);
+          });
+          maskCtx.closePath();
+          maskCtx.fill();
+
+          ctx.globalCompositeOperation = 'destination-in';
+          ctx.drawImage(maskCanvas, 0, 0);
+        }
 
         const link = document.createElement('a');
         link.download = `${baseName}_${String(index + 1).padStart(2, '0')}.png`;
@@ -722,8 +1502,11 @@
 
     // Prevent page scroll while interacting on mobile
     document.body.addEventListener('touchmove', (e) => {
-      if (action) e.preventDefault();
+      if (action || isDrawingPolygon || isDrawingFreehand) e.preventDefault();
     }, { passive: false });
+
+    // Initialize hint
+    setTool('rectangle');
   </script>
 </body>
 </html>
