@@ -409,6 +409,139 @@
       color: #888;
       line-height: 1.5;
     }
+
+    /* Preset panel styles */
+    .preset-panel {
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .preset-category {
+      margin-bottom: 10px;
+    }
+
+    .preset-category:last-child {
+      margin-bottom: 0;
+    }
+
+    .preset-category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: background 0.2s;
+    }
+
+    .preset-category-header:hover {
+      background: rgba(255,255,255,0.08);
+    }
+
+    .preset-category-header .arrow {
+      transition: transform 0.2s;
+    }
+
+    .preset-category.expanded .preset-category-header .arrow {
+      transform: rotate(90deg);
+    }
+
+    .preset-options {
+      display: none;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px 4px 4px 4px;
+    }
+
+    .preset-category.expanded .preset-options {
+      display: flex;
+    }
+
+    .preset-btn {
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.75rem;
+      border: 1px solid rgba(0,212,255,0.3);
+      font-family: inherit;
+      background: rgba(0,212,255,0.1);
+      color: #00d4ff;
+      transition: all 0.2s;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .preset-btn:hover {
+      background: rgba(0,212,255,0.2);
+      border-color: rgba(0,212,255,0.5);
+    }
+
+    .preset-btn:active {
+      background: rgba(0,212,255,0.3);
+    }
+
+    .preset-btn.social {
+      border-color: rgba(255,100,200,0.3);
+      background: rgba(255,100,200,0.1);
+      color: #ff64c8;
+    }
+
+    .preset-btn.social:hover {
+      background: rgba(255,100,200,0.2);
+      border-color: rgba(255,100,200,0.5);
+    }
+
+    .preset-btn.print {
+      border-color: rgba(100,255,150,0.3);
+      background: rgba(100,255,150,0.1);
+      color: #64ff96;
+    }
+
+    .preset-btn.print:hover {
+      background: rgba(100,255,150,0.2);
+      border-color: rgba(100,255,150,0.5);
+    }
+
+    .preset-btn.composition {
+      border-color: rgba(255,200,100,0.3);
+      background: rgba(255,200,100,0.1);
+      color: #ffc864;
+    }
+
+    .preset-btn.composition:hover {
+      background: rgba(255,200,100,0.2);
+      border-color: rgba(255,200,100,0.5);
+    }
+
+    .preset-btn.mosaic {
+      border-color: rgba(150,100,255,0.3);
+      background: rgba(150,100,255,0.1);
+      color: #9664ff;
+    }
+
+    .preset-btn.mosaic:hover {
+      background: rgba(150,100,255,0.2);
+      border-color: rgba(150,100,255,0.5);
+    }
+
+    .preset-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .preset-info {
+      font-size: 0.7rem;
+      color: #666;
+      padding: 6px 8px;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
@@ -465,6 +598,71 @@
       <div class="sidebar">
         <div class="hint-bar" id="hintBar">
           Select a tool and draw on the image
+        </div>
+
+        <div class="preset-panel">
+          <label class="field-label">Grid Presets</label>
+
+          <!-- Rule of Thirds -->
+          <div class="preset-category" id="catComposition">
+            <div class="preset-category-header" onclick="togglePresetCategory('catComposition')">
+              <span>Compositional Grids</span>
+              <span class="arrow">▶</span>
+            </div>
+            <div class="preset-options">
+              <button class="preset-btn composition" onclick="applyPreset('rule-of-thirds')" title="Divides image into 9 equal parts">Rule of Thirds</button>
+              <button class="preset-btn composition" onclick="applyPreset('phi-grid')" title="Golden Ratio (1:1.618) grid">Phi Grid</button>
+              <button class="preset-btn composition" onclick="applyPreset('golden-triangle')" title="Diagonal composition grid">Golden Triangle</button>
+              <div class="preset-info">For balanced, aesthetically pleasing compositions</div>
+            </div>
+          </div>
+
+          <!-- Social Media -->
+          <div class="preset-category" id="catSocial">
+            <div class="preset-category-header" onclick="togglePresetCategory('catSocial')">
+              <span>Social Media Grids</span>
+              <span class="arrow">▶</span>
+            </div>
+            <div class="preset-options">
+              <button class="preset-btn social" onclick="applyPreset('social-1x1-3')" title="3 square tiles for Instagram grid">1:1 × 3</button>
+              <button class="preset-btn social" onclick="applyPreset('social-1x1-9')" title="9 square tiles for Instagram puzzle">1:1 × 9</button>
+              <button class="preset-btn social" onclick="applyPreset('social-4x5')" title="Instagram portrait (max feed space)">4:5 Portrait</button>
+              <button class="preset-btn social" onclick="applyPreset('social-9x16')" title="Stories, Reels, TikTok">9:16 Vertical</button>
+              <div class="preset-info">Instagram, TikTok, Stories & Reels</div>
+            </div>
+          </div>
+
+          <!-- Print Ratios -->
+          <div class="preset-category" id="catPrint">
+            <div class="preset-category-header" onclick="togglePresetCategory('catPrint')">
+              <span>Print Aspect Ratios</span>
+              <span class="arrow">▶</span>
+            </div>
+            <div class="preset-options">
+              <button class="preset-btn print" onclick="applyPreset('ratio-3x2')" title="35mm / DSLR / 4×6 prints">3:2</button>
+              <button class="preset-btn print" onclick="applyPreset('ratio-4x3')" title="Micro 4/3 / Smartphones">4:3</button>
+              <button class="preset-btn print" onclick="applyPreset('ratio-5x4')" title="8×10 prints">5:4</button>
+              <button class="preset-btn print" onclick="applyPreset('ratio-16x9')" title="Widescreen / Cinematic">16:9</button>
+              <div class="preset-info">Standard print and display ratios</div>
+            </div>
+          </div>
+
+          <!-- Mosaic/Splitter -->
+          <div class="preset-category" id="catMosaic">
+            <div class="preset-category-header" onclick="togglePresetCategory('catMosaic')">
+              <span>Mosaic Splitter</span>
+              <span class="arrow">▶</span>
+            </div>
+            <div class="preset-options">
+              <button class="preset-btn mosaic" onclick="applyPreset('mosaic-2x2')" title="4 equal tiles">2×2</button>
+              <button class="preset-btn mosaic" onclick="applyPreset('mosaic-3x3')" title="9 equal tiles">3×3</button>
+              <button class="preset-btn mosaic" onclick="applyPreset('mosaic-4x4')" title="16 equal tiles">4×4</button>
+              <button class="preset-btn mosaic" onclick="applyPreset('mosaic-2x3')" title="6 equal tiles">2×3</button>
+              <button class="preset-btn mosaic" onclick="applyPreset('mosaic-3x1')" title="3 horizontal tiles">3×1</button>
+              <button class="preset-btn mosaic" onclick="applyPreset('mosaic-1x3')" title="3 vertical tiles">1×3</button>
+              <div class="preset-info">Split image into equal tiles</div>
+            </div>
+          </div>
         </div>
 
         <div>
@@ -1643,6 +1841,359 @@
     document.body.addEventListener('touchmove', (e) => {
       if (action || isDrawingPolygon || isDrawingFreehand) e.preventDefault();
     }, { passive: false });
+
+    // ========================================
+    // PRESET GRID FUNCTIONS
+    // ========================================
+
+    // Toggle preset category expansion
+    function togglePresetCategory(categoryId) {
+      const category = document.getElementById(categoryId);
+      if (category) {
+        category.classList.toggle('expanded');
+      }
+    }
+
+    // Golden ratio constant
+    const PHI = 1.618033988749895;
+
+    // Apply a preset grid to the current image
+    function applyPreset(presetType) {
+      if (!originalImage) {
+        alert('Please load an image first');
+        return;
+      }
+
+      // Save state for undo
+      saveState();
+
+      // Clear existing zones
+      zones = [];
+      selectedZoneId = null;
+      cancelDrawing();
+
+      const imgW = originalImage.width;
+      const imgH = originalImage.height;
+
+      let newZones = [];
+
+      switch (presetType) {
+        // Compositional Grids
+        case 'rule-of-thirds':
+          newZones = generateMosaicGrid(imgW, imgH, 3, 3);
+          break;
+        case 'phi-grid':
+          newZones = generatePhiGrid(imgW, imgH);
+          break;
+        case 'golden-triangle':
+          newZones = generateGoldenTriangle(imgW, imgH);
+          break;
+
+        // Social Media Grids
+        case 'social-1x1-3':
+          newZones = generateSquareTiles(imgW, imgH, 3);
+          break;
+        case 'social-1x1-9':
+          newZones = generateSquareTiles(imgW, imgH, 9);
+          break;
+        case 'social-4x5':
+          newZones = generateAspectRatioCrop(imgW, imgH, 4, 5);
+          break;
+        case 'social-9x16':
+          newZones = generateAspectRatioCrop(imgW, imgH, 9, 16);
+          break;
+
+        // Print Aspect Ratios
+        case 'ratio-3x2':
+          newZones = generateAspectRatioCrop(imgW, imgH, 3, 2);
+          break;
+        case 'ratio-4x3':
+          newZones = generateAspectRatioCrop(imgW, imgH, 4, 3);
+          break;
+        case 'ratio-5x4':
+          newZones = generateAspectRatioCrop(imgW, imgH, 5, 4);
+          break;
+        case 'ratio-16x9':
+          newZones = generateAspectRatioCrop(imgW, imgH, 16, 9);
+          break;
+
+        // Mosaic Splitter
+        case 'mosaic-2x2':
+          newZones = generateMosaicGrid(imgW, imgH, 2, 2);
+          break;
+        case 'mosaic-3x3':
+          newZones = generateMosaicGrid(imgW, imgH, 3, 3);
+          break;
+        case 'mosaic-4x4':
+          newZones = generateMosaicGrid(imgW, imgH, 4, 4);
+          break;
+        case 'mosaic-2x3':
+          newZones = generateMosaicGrid(imgW, imgH, 2, 3);
+          break;
+        case 'mosaic-3x1':
+          newZones = generateMosaicGrid(imgW, imgH, 3, 1);
+          break;
+        case 'mosaic-1x3':
+          newZones = generateMosaicGrid(imgW, imgH, 1, 3);
+          break;
+
+        default:
+          console.warn('Unknown preset:', presetType);
+          return;
+      }
+
+      // Add zones with proper display coordinates
+      newZones.forEach(zone => {
+        zone.displayX = zone.x * scale;
+        zone.displayY = zone.y * scale;
+        zone.displayW = zone.width * scale;
+        zone.displayH = zone.height * scale;
+
+        // For polygon/freehand types, also scale the points
+        if (zone.points && zone.points.length > 0) {
+          zone.displayPoints = zone.points.map(p => ({
+            x: p.x * scale,
+            y: p.y * scale
+          }));
+        }
+
+        zones.push(zone);
+      });
+
+      updateZonesList();
+      renderZones();
+    }
+
+    // Generate a simple mosaic grid (rows x cols of equal rectangles)
+    function generateMosaicGrid(imgW, imgH, cols, rows) {
+      const cellW = imgW / cols;
+      const cellH = imgH / rows;
+      const zones = [];
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          zones.push({
+            id: Date.now() + row * cols + col,
+            type: 'rectangle',
+            x: col * cellW,
+            y: row * cellH,
+            width: cellW,
+            height: cellH
+          });
+        }
+      }
+
+      return zones;
+    }
+
+    // Generate Phi Grid (golden ratio divisions)
+    function generatePhiGrid(imgW, imgH) {
+      // Phi grid divides the image using golden ratio proportions
+      // Instead of 1/3 divisions, use 1/phi and 1-1/phi
+      const phiRatio = 1 / PHI; // ~0.618
+      const phiComplement = 1 - phiRatio; // ~0.382
+
+      // Vertical divisions at golden ratio points
+      const x1 = imgW * phiComplement;
+      const x2 = imgW * phiRatio;
+
+      // Horizontal divisions at golden ratio points
+      const y1 = imgH * phiComplement;
+      const y2 = imgH * phiRatio;
+
+      const zones = [];
+
+      // Top row
+      zones.push({ id: Date.now(), type: 'rectangle', x: 0, y: 0, width: x1, height: y1 });
+      zones.push({ id: Date.now() + 1, type: 'rectangle', x: x1, y: 0, width: x2 - x1, height: y1 });
+      zones.push({ id: Date.now() + 2, type: 'rectangle', x: x2, y: 0, width: imgW - x2, height: y1 });
+
+      // Middle row
+      zones.push({ id: Date.now() + 3, type: 'rectangle', x: 0, y: y1, width: x1, height: y2 - y1 });
+      zones.push({ id: Date.now() + 4, type: 'rectangle', x: x1, y: y1, width: x2 - x1, height: y2 - y1 });
+      zones.push({ id: Date.now() + 5, type: 'rectangle', x: x2, y: y1, width: imgW - x2, height: y2 - y1 });
+
+      // Bottom row
+      zones.push({ id: Date.now() + 6, type: 'rectangle', x: 0, y: y2, width: x1, height: imgH - y2 });
+      zones.push({ id: Date.now() + 7, type: 'rectangle', x: x1, y: y2, width: x2 - x1, height: imgH - y2 });
+      zones.push({ id: Date.now() + 8, type: 'rectangle', x: x2, y: y2, width: imgW - x2, height: imgH - y2 });
+
+      return zones;
+    }
+
+    // Generate Golden Triangle grid (diagonal composition)
+    function generateGoldenTriangle(imgW, imgH) {
+      // Golden triangle creates triangular zones for dynamic composition
+      // We'll create 4 triangular regions as polygons
+      const zones = [];
+
+      // Main diagonal from top-left to bottom-right
+      // Perpendicular from top-right to main diagonal
+      // Perpendicular from bottom-left to main diagonal
+
+      // Calculate intersection points
+      // For a rectangle, the perpendicular from top-right corner meets the diagonal at:
+      const diagonalLength = Math.sqrt(imgW * imgW + imgH * imgH);
+      const t1 = (imgW * imgW) / (diagonalLength * diagonalLength) * diagonalLength;
+
+      // Point on diagonal from top-left
+      const px1 = (imgW * imgW) / diagonalLength * (imgW / diagonalLength);
+      const py1 = (imgW * imgW) / diagonalLength * (imgH / diagonalLength);
+
+      // Point on diagonal from bottom-left
+      const px2 = imgW - (imgH * imgH) / diagonalLength * (imgW / diagonalLength);
+      const py2 = imgH - (imgH * imgH) / diagonalLength * (imgH / diagonalLength);
+
+      // Create 4 triangular zones as polygons
+      // Top triangle (top-left corner to top-right to intersection point 1)
+      zones.push({
+        id: Date.now(),
+        type: 'polygon',
+        points: [
+          { x: 0, y: 0 },
+          { x: imgW, y: 0 },
+          { x: px1, y: py1 }
+        ],
+        x: 0,
+        y: 0,
+        width: imgW,
+        height: py1
+      });
+
+      // Right triangle (top-right to bottom-right to intersection point 2)
+      zones.push({
+        id: Date.now() + 1,
+        type: 'polygon',
+        points: [
+          { x: imgW, y: 0 },
+          { x: imgW, y: imgH },
+          { x: px2, y: py2 },
+          { x: px1, y: py1 }
+        ],
+        x: px1,
+        y: 0,
+        width: imgW - px1,
+        height: imgH
+      });
+
+      // Bottom triangle (bottom-right to bottom-left to intersection point 2)
+      zones.push({
+        id: Date.now() + 2,
+        type: 'polygon',
+        points: [
+          { x: imgW, y: imgH },
+          { x: 0, y: imgH },
+          { x: px2, y: py2 }
+        ],
+        x: 0,
+        y: py2,
+        width: imgW,
+        height: imgH - py2
+      });
+
+      // Left triangle (bottom-left to top-left to intersection point 1)
+      zones.push({
+        id: Date.now() + 3,
+        type: 'polygon',
+        points: [
+          { x: 0, y: imgH },
+          { x: 0, y: 0 },
+          { x: px1, y: py1 },
+          { x: px2, y: py2 }
+        ],
+        x: 0,
+        y: 0,
+        width: px2,
+        height: imgH
+      });
+
+      return zones;
+    }
+
+    // Generate square tiles from the largest square that fits the image
+    function generateSquareTiles(imgW, imgH, count) {
+      const zones = [];
+
+      // For 3 tiles: create 3 squares in a row
+      // For 9 tiles: create 3x3 grid of squares
+      if (count === 3) {
+        // 3 horizontal squares - use the height as the square size if image is wider
+        // or divide width by 3 if image is taller
+        const squareSize = Math.min(imgH, imgW / 3);
+        const totalWidth = squareSize * 3;
+        const startX = (imgW - totalWidth) / 2;
+        const startY = (imgH - squareSize) / 2;
+
+        for (let i = 0; i < 3; i++) {
+          zones.push({
+            id: Date.now() + i,
+            type: 'rectangle',
+            x: startX + i * squareSize,
+            y: startY,
+            width: squareSize,
+            height: squareSize
+          });
+        }
+      } else if (count === 9) {
+        // 3x3 grid of squares - find the largest 3x3 arrangement
+        const squareSize = Math.min(imgW / 3, imgH / 3);
+        const totalWidth = squareSize * 3;
+        const totalHeight = squareSize * 3;
+        const startX = (imgW - totalWidth) / 2;
+        const startY = (imgH - totalHeight) / 2;
+
+        for (let row = 0; row < 3; row++) {
+          for (let col = 0; col < 3; col++) {
+            zones.push({
+              id: Date.now() + row * 3 + col,
+              type: 'rectangle',
+              x: startX + col * squareSize,
+              y: startY + row * squareSize,
+              width: squareSize,
+              height: squareSize
+            });
+          }
+        }
+      }
+
+      return zones;
+    }
+
+    // Generate a centered crop with specific aspect ratio
+    function generateAspectRatioCrop(imgW, imgH, ratioW, ratioH) {
+      const zones = [];
+
+      // Calculate the largest area with the target aspect ratio that fits
+      const targetRatio = ratioW / ratioH;
+      const imageRatio = imgW / imgH;
+
+      let cropW, cropH;
+
+      if (imageRatio > targetRatio) {
+        // Image is wider than target ratio - height is limiting
+        cropH = imgH;
+        cropW = imgH * targetRatio;
+      } else {
+        // Image is taller than target ratio - width is limiting
+        cropW = imgW;
+        cropH = imgW / targetRatio;
+      }
+
+      // Center the crop
+      const startX = (imgW - cropW) / 2;
+      const startY = (imgH - cropH) / 2;
+
+      zones.push({
+        id: Date.now(),
+        type: 'rectangle',
+        x: startX,
+        y: startY,
+        width: cropW,
+        height: cropH
+      });
+
+      return zones;
+    }
 
     // Initialize hint and button states
     setTool('rectangle');
