@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { Layer, Line, Rect, Stage } from "react-konva";
+import { Ellipse, Layer, Line, Rect, Stage } from "react-konva";
 import Konva from "konva";
 import { toast } from "sonner";
 import { useEditor } from "../../context/EditorContext";
@@ -167,9 +167,15 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
     if (!metrics || !imageInfo) return;
     const snapThreshold = 6;
     const node = event.target;
-    if (zone.type === "rect") {
-      let nextX = node.x() / metrics.scale;
-      let nextY = node.y() / metrics.scale;
+    if (zone.type === "rect" || zone.type === "ellipse") {
+      let nextX =
+        zone.type === "ellipse"
+          ? node.x() / metrics.scale - zone.width / 2
+          : node.x() / metrics.scale;
+      let nextY =
+        zone.type === "ellipse"
+          ? node.y() / metrics.scale - zone.height / 2
+          : node.y() / metrics.scale;
       if (Math.abs(nextX) < snapThreshold) nextX = 0;
       if (Math.abs(nextY) < snapThreshold) nextY = 0;
       if (Math.abs(nextX + zone.width - imageInfo.width) < snapThreshold) {
@@ -325,7 +331,7 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
                     const isSelected = selectedZoneIds.includes(zone.id);
                     const strokeColor = zone.color ?? "#94a3b8";
                     const fillColor = hexToRgba(strokeColor, 0.16);
-                    if (zone.type === "rect") {
+    if (zone.type === "rect") {
                       return (
                         <Rect
                           key={zone.id}
@@ -342,6 +348,23 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
                         />
                       );
                     }
+    if (zone.type === "ellipse") {
+      return (
+        <Ellipse
+          key={zone.id}
+          x={(zone.x + zone.width / 2) * metrics.scale}
+          y={(zone.y + zone.height / 2) * metrics.scale}
+          radiusX={(zone.width * metrics.scale) / 2}
+          radiusY={(zone.height * metrics.scale) / 2}
+          stroke={strokeColor}
+          strokeWidth={isSelected ? 3 : 2}
+          fill={fillColor}
+          draggable={tool === "select"}
+          onDragEnd={(event) => handleDragEnd(zone, event)}
+          onClick={() => setSelectedZoneIds([zone.id])}
+        />
+      );
+    }
                     return (
                       <Line
                         key={zone.id}
@@ -396,7 +419,7 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
                     </>
                   )}
 
-                  {drawing?.type === "rect" && (
+                {drawing?.type === "rect" && (
                     <Rect
                       x={Math.min(drawing.start.x, drawing.current.x) * metrics.scale}
                       y={Math.min(drawing.start.y, drawing.current.y) * metrics.scale}
@@ -407,6 +430,17 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
                       dash={[6, 4]}
                     />
                   )}
+                {drawing?.type === "ellipse" && (
+                  <Ellipse
+                    x={(drawing.start.x + drawing.current.x) / 2 * metrics.scale}
+                    y={(drawing.start.y + drawing.current.y) / 2 * metrics.scale}
+                    radiusX={Math.abs(drawing.start.x - drawing.current.x) / 2 * metrics.scale}
+                    radiusY={Math.abs(drawing.start.y - drawing.current.y) / 2 * metrics.scale}
+                    stroke="#60a5fa"
+                    strokeWidth={2}
+                    dash={[6, 4]}
+                  />
+                )}
                   {drawing?.type === "polygon" && (
                     <Line
                       points={[

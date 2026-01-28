@@ -116,6 +116,32 @@ export class CanvasManager {
           canvas.width,
           canvas.height
         );
+      } else if (zone.type === "ellipse") {
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(
+          canvas.width / 2,
+          canvas.height / 2,
+          canvas.width / 2,
+          canvas.height / 2,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(
+          this.image,
+          zone.x,
+          zone.y,
+          zone.width,
+          zone.height,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+        ctx.restore();
       } else {
         ctx.save();
         ctx.beginPath();

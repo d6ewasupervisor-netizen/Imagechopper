@@ -104,7 +104,7 @@ const EditorShell = () => {
     if (!imageInfo || selectedZoneIds.length === 0) return;
     const nextZones = zones.map((zone) => {
       if (!selectedZoneIds.includes(zone.id)) return zone;
-      if (zone.type === "rect") {
+      if (zone.type === "rect" || zone.type === "ellipse") {
         const nextX = Math.min(Math.max(zone.x + dx, 0), imageInfo.width - zone.width);
         const nextY = Math.min(Math.max(zone.y + dy, 0), imageInfo.height - zone.height);
         return { ...zone, x: nextX, y: nextY };
@@ -222,6 +222,11 @@ const EditorShell = () => {
 
       if (key === "r") {
         setTool("rect");
+        return;
+      }
+
+      if (key === "e") {
+        setTool("ellipse");
         return;
       }
 
@@ -383,6 +388,13 @@ const EditorShell = () => {
             Rectangle
           </button>
           <button
+            className={`tool-pill ${tool === "ellipse" ? "active" : ""}`}
+            onClick={() => setTool("ellipse")}
+            title="Ellipse (E)"
+          >
+            Ellipse
+          </button>
+          <button
             className={`tool-pill ${tool === "polygon" ? "active" : ""}`}
             onClick={() => setTool("polygon")}
             title="Polygon (P)"
@@ -468,6 +480,12 @@ const EditorShell = () => {
                     onClick={() => setTool("rect")}
                   >
                     Rectangle
+                  </button>
+                  <button
+                    className={`tab-action ${tool === "ellipse" ? "active" : ""}`}
+                    onClick={() => setTool("ellipse")}
+                  >
+                    Ellipse
                   </button>
                   <button
                     className={`tab-action ${tool === "polygon" ? "active" : ""}`}
@@ -1010,6 +1028,7 @@ const EditorShell = () => {
                   <div className="section-title">Tools</div>
                   <div className="help-item">Select: V</div>
                   <div className="help-item">Rectangle: R</div>
+                  <div className="help-item">Ellipse: E</div>
                   <div className="help-item">Polygon: P</div>
                 </div>
                 <div className="help-section">

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useMemo, useRef } from "react";
 import JSZip from "jszip";
 import { toast } from "sonner";
 import { CanvasManager } from "../canvas/core/CanvasManager";
+import { EllipseTool } from "../canvas/tools/EllipseTool";
 import { PolygonTool } from "../canvas/tools/PolygonTool";
 import { RectTool } from "../canvas/tools/RectTool";
 import { ZoneToolContext } from "../canvas/tools/ZoneTool";
@@ -86,6 +87,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const canvasManagerRef = useRef(new CanvasManager());
   const toolsRef = useRef({
     rect: new RectTool(),
+    ellipse: new EllipseTool(),
     polygon: new PolygonTool(),
   });
 
@@ -96,6 +98,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const runTool = (fn: (point: Point) => void) => (point: Point) => {
       const tool = getTool();
       if (tool === "rect") fn(point);
+      if (tool === "ellipse") fn(point);
       if (tool === "polygon") fn(point);
     };
 
@@ -280,16 +283,19 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       handlePointerDown: (point) => {
         const tool = getTool();
         if (tool === "rect") toolsRef.current.rect.onPointerDown(point, toolContext);
+        if (tool === "ellipse") toolsRef.current.ellipse.onPointerDown(point, toolContext);
         if (tool === "polygon") toolsRef.current.polygon.onPointerDown(point, toolContext);
       },
       handlePointerMove: runTool((point) => {
         const tool = getTool();
         if (tool === "rect") toolsRef.current.rect.onPointerMove(point, toolContext);
+        if (tool === "ellipse") toolsRef.current.ellipse.onPointerMove(point, toolContext);
         if (tool === "polygon") toolsRef.current.polygon.onPointerMove(point, toolContext);
       }),
       handlePointerUp: runTool((point) => {
         const tool = getTool();
         if (tool === "rect") toolsRef.current.rect.onPointerUp(point, toolContext);
+        if (tool === "ellipse") toolsRef.current.ellipse.onPointerUp(point, toolContext);
         if (tool === "polygon") toolsRef.current.polygon.onPointerUp(point, toolContext);
       }),
       handleDoubleClick: (point) => {

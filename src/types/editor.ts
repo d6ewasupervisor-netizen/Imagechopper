@@ -1,4 +1,4 @@
-export type ToolType = "select" | "rect" | "polygon";
+export type ToolType = "select" | "rect" | "polygon" | "ellipse";
 
 export interface Point {
   x: number;
@@ -28,7 +28,18 @@ export interface PolygonZone {
   height: number;
 }
 
-export type Zone = RectZone | PolygonZone;
+export interface EllipseZone {
+  id: string;
+  type: "ellipse";
+  label?: string;
+  color?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export type Zone = RectZone | PolygonZone | EllipseZone;
 
 export interface DrawingRect {
   type: "rect";
@@ -42,7 +53,13 @@ export interface DrawingPolygon {
   current?: Point | null;
 }
 
-export type DrawingState = DrawingRect | DrawingPolygon | null;
+export interface DrawingEllipse {
+  type: "ellipse";
+  start: Point;
+  current: Point;
+}
+
+export type DrawingState = DrawingRect | DrawingPolygon | DrawingEllipse | null;
 
 export interface CanvasMetrics {
   displayWidth: number;
