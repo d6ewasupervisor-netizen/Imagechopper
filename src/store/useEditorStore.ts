@@ -27,6 +27,10 @@ interface EditorState {
   canvasMetrics: CanvasMetrics | null;
   adjustments: AdjustmentSettings;
   exportBaseName: string;
+  exportAsZip: boolean;
+  isExporting: boolean;
+  exportProgress: number;
+  exportStatus: string;
   history: HistorySnapshot[];
   redo: HistorySnapshot[];
   historyLimit: number;
@@ -42,6 +46,12 @@ interface EditorState {
   resetAdjustments: () => void;
   clearZones: () => void;
   setExportBaseName: (name: string) => void;
+  setExportAsZip: (value: boolean) => void;
+  setExportStatus: (status: {
+    isExporting: boolean;
+    exportProgress: number;
+    exportStatus: string;
+  }) => void;
   pushHistory: (label: string) => void;
   undo: () => void;
   redoAction: () => void;
@@ -57,6 +67,10 @@ export const useEditorStore = create<EditorState>((set) => ({
   canvasMetrics: null,
   adjustments: { brightness: 0, contrast: 0, saturation: 0, blur: 0 },
   exportBaseName: "custom",
+  exportAsZip: true,
+  isExporting: false,
+  exportProgress: 0,
+  exportStatus: "",
   history: [],
   redo: [],
   historyLimit: 50,
@@ -82,6 +96,8 @@ export const useEditorStore = create<EditorState>((set) => ({
     set({ adjustments: { brightness: 0, contrast: 0, saturation: 0, blur: 0 } }),
   clearZones: () => set({ zones: [], selectedZoneIds: [], drawing: null }),
   setExportBaseName: (name) => set({ exportBaseName: name }),
+  setExportAsZip: (value) => set({ exportAsZip: value }),
+  setExportStatus: (status) => set(status),
   pushHistory: (label) =>
     set((state) => {
       const snapshot: HistorySnapshot = {

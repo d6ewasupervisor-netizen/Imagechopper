@@ -424,6 +424,43 @@ button {
   cursor: not-allowed;
 }
 
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.checkbox-row input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+.export-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+}
+
+.export-progress-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.export-progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+}
+
+.export-progress-bar {
+  height: 100%;
+  background: linear-gradient(135deg, #34d399, #60a5fa);
+  transition: width 0.2s ease;
+}
+
 .adjustments-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

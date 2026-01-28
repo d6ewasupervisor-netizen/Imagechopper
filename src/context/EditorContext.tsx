@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useMemo, useRef } from "react";
+import JSZip from "jszip";
+import { toast } from "sonner";
 import { CanvasManager } from "../canvas/core/CanvasManager";
 import { PolygonTool } from "../canvas/tools/PolygonTool";
 import { RectTool } from "../canvas/tools/RectTool";
@@ -12,7 +14,7 @@ interface EditorActions {
   handlePointerMove: (point: Point) => void;
   handlePointerUp: (point: Point) => void;
   handleDoubleClick: (point: Point) => void;
-  exportZones: () => void;
+  exportZones: () => Promise<void>;
   applyTemplate: (templateId: string) => void;
   applyRatio: (ratioId: string) => void;
 }
@@ -23,6 +25,15 @@ interface EditorContextValue {
 }
 
 const EditorContext = createContext<EditorContextValue | null>(null);
+
+const downloadBlob = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = url;
+  link.click();
+  URL.revokeObjectURL(url);
+};
 
 const buildToolContext = (): ZoneToolContext => ({
   getZones: () => useEditorStore.getState().zones,
@@ -54,20 +65,31 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return {
       loadImageFromFile: async (file) => {
+        if (!file.type.startsWith("image/")) {
+          toast.error("Unsupported file type. Please select an image.");
+          return;
+        }
         const url = URL.createObjectURL(file);
         const img = new Image();
-        await new Promise<void>((resolve, reject) => {
-          img.onload = () => resolve();
-          img.onerror = () => reject(new Error("Failed to load image"));
-          img.src = url;
-        });
-        URL.revokeObjectURL(url);
-        canvasManagerRef.current.setImage(img);
-        useEditorStore.getState().setImageInfo({ width: img.width, height: img.height });
-        useEditorStore.getState().clearZones();
-        useEditorStore.getState().resetAdjustments();
-        useEditorStore.getState().resetHistory();
-        useEditorStore.getState().pushHistory("Load image");
+        try {
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error("Failed to load image"));
+            img.src = url;
+          });
+          canvasManagerRef.current.setImage(img);
+          useEditorStore.getState().setImageInfo({ width: img.width, height: img.height });
+          useEditorStore.getState().clearZones();
+          useEditorStore.getState().resetAdjustments();
+          useEditorStore.getState().resetHistory();
+          useEditorStore.getState().pushHistory("Load image");
+          toast.success("Image loaded.");
+        } catch (error) {
+          toast.error("Could not load that image.");
+          throw error;
+        } finally {
+          URL.revokeObjectURL(url);
+        }
       },
       handlePointerDown: (point) => {
         const tool = getTool();
@@ -90,16 +112,45 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           toolsRef.current.polygon.onDoubleClick(point, toolContext);
         }
       },
-      exportZones: () => {
+      exportZones: async () => {
         const zones = useEditorStore.getState().zones;
+        if (zones.length === 0) {
+          toast.error("No zones to export yet.");
+          return;
+        }
         const baseName = useEditorStore.getState().exportBaseName.trim() || "custom";
-        const exports = canvasManagerRef.current.exportZones(zones, baseName);
-        exports.forEach((item) => {
-          const link = document.createElement("a");
-          link.download = item.name;
-          link.href = item.dataUrl;
-          link.click();
-        });
+        const exportAsZip = useEditorStore.getState().exportAsZip;
+        useEditorStore
+          .getState()
+          .setExportStatus({ isExporting: true, exportProgress: 0, exportStatus: "Preparing" });
+        try {
+          const exports = await canvasManagerRef.current.exportZones(zones, baseName, {
+            onProgress: (completed, total) => {
+              useEditorStore.getState().setExportStatus({
+                isExporting: true,
+                exportProgress: total > 0 ? completed / total : 0,
+                exportStatus: `Exporting ${completed}/${total}`,
+              });
+            },
+          });
+          if (exportAsZip) {
+            const zip = new JSZip();
+            exports.forEach((item) => zip.file(item.name, item.blob));
+            const blob = await zip.generateAsync({ type: "blob" });
+            downloadBlob(blob, `${baseName}_zones.zip`);
+          } else {
+            exports.forEach((item) => downloadBlob(item.blob, item.name));
+          }
+          toast.success("Export complete.");
+        } catch (error) {
+          toast.error("Export failed. Please try again.");
+        } finally {
+          useEditorStore.getState().setExportStatus({
+            isExporting: false,
+            exportProgress: 0,
+            exportStatus: "",
+          });
+        }
       },
       applyTemplate: (templateId) => {
         const imageInfo = useEditorStore.getState().imageInfo;

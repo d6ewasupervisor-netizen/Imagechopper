@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CanvasWorkspace from "./CanvasWorkspace";
 import { useEditor } from "../../context/EditorContext";
 import {
@@ -24,6 +24,11 @@ const EditorShell = () => {
   const imageInfo = useEditorStore((state) => state.imageInfo);
   const exportBaseName = useEditorStore((state) => state.exportBaseName);
   const setExportBaseName = useEditorStore((state) => state.setExportBaseName);
+  const exportAsZip = useEditorStore((state) => state.exportAsZip);
+  const setExportAsZip = useEditorStore((state) => state.setExportAsZip);
+  const isExporting = useEditorStore((state) => state.isExporting);
+  const exportProgress = useEditorStore((state) => state.exportProgress);
+  const exportStatus = useEditorStore((state) => state.exportStatus);
   const adjustments = useEditorStore((state) => state.adjustments);
   const setAdjustment = useEditorStore((state) => state.setAdjustment);
   const resetAdjustments = useEditorStore((state) => state.resetAdjustments);
@@ -31,6 +36,7 @@ const EditorShell = () => {
   const selectedZoneIds = useEditorStore((state) => state.selectedZoneIds);
   const setZones = useEditorStore((state) => state.setZones);
   const setSelectedZoneIds = useEditorStore((state) => state.setSelectedZoneIds);
+  const setDrawing = useEditorStore((state) => state.setDrawing);
   const clearZones = useEditorStore((state) => state.clearZones);
   const pushHistory = useEditorStore((state) => state.pushHistory);
   const canUndo = useEditorStore(selectCanUndo);
@@ -48,6 +54,93 @@ const EditorShell = () => {
     setSelectedZoneIds(selectedZoneIds.filter((zoneId) => zoneId !== id));
     pushHistory("Delete zone");
   };
+
+  useEffect(() => {
+    const isEditableTarget = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      const tag = target.tagName;
+      return target.isContentEditable || tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isEditableTarget(event.target)) return;
+      const key = event.key.toLowerCase();
+      const isMod = event.ctrlKey || event.metaKey;
+
+      if (isMod && key === "z" && !event.shiftKey) {
+        event.preventDefault();
+        if (canUndo) undo();
+        return;
+      }
+
+      if (isMod && (key === "y" || (key === "z" && event.shiftKey))) {
+        event.preventDefault();
+        if (canRedo) redo();
+        return;
+      }
+
+      if (isMod && key === "o") {
+        event.preventDefault();
+        handleOpen();
+        return;
+      }
+
+      if (isMod && key === "e") {
+        event.preventDefault();
+        if (!isExporting) {
+          void actions.exportZones();
+        }
+        return;
+      }
+
+      if (key === "v") {
+        setTool("select");
+        return;
+      }
+
+      if (key === "r") {
+        setTool("rect");
+        return;
+      }
+
+      if (key === "p") {
+        setTool("polygon");
+        return;
+      }
+
+      if (key === "escape") {
+        setDrawing(null);
+        setSelectedZoneIds([]);
+        return;
+      }
+
+      if (key === "backspace" || key === "delete") {
+        if (selectedZoneIds.length === 0) return;
+        event.preventDefault();
+        setZones(zones.filter((zone) => !selectedZoneIds.includes(zone.id)));
+        setSelectedZoneIds([]);
+        pushHistory("Delete zones");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    actions,
+    canRedo,
+    canUndo,
+    handleOpen,
+    isExporting,
+    pushHistory,
+    redo,
+    selectedZoneIds,
+    setDrawing,
+    setSelectedZoneIds,
+    setTool,
+    setZones,
+    undo,
+    zones,
+  ]);
 
   return (
     <div className="app">
@@ -268,10 +361,32 @@ const EditorShell = () => {
                   <button
                     className="tab-action"
                     onClick={actions.exportZones}
-                    disabled={zones.length === 0}
+                    disabled={zones.length === 0 || isExporting}
                   >
-                    Export Zones
+                    {isExporting ? "Exporting..." : "Export Zones"}
                   </button>
+                  <label className="checkbox-row">
+                    <input
+                      type="checkbox"
+                      checked={exportAsZip}
+                      onChange={(event) => setExportAsZip(event.target.checked)}
+                    />
+                    Download as ZIP
+                  </label>
+                  {isExporting && (
+                    <div className="export-progress">
+                      <div className="export-progress-label">
+                        Exporting {Math.round(exportProgress * 100)}%
+                      </div>
+                      <div className="export-progress-track">
+                        <div
+                          className="export-progress-bar"
+                          style={{ width: `${Math.round(exportProgress * 100)}%` }}
+                        />
+                      </div>
+                      {exportStatus && <div className="hint">{exportStatus}</div>}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -294,7 +409,11 @@ const EditorShell = () => {
                     onChange={async (event) => {
                       const file = event.target.files?.[0];
                       if (file) {
-                        await actions.loadImageFromFile(file);
+                        try {
+                          await actions.loadImageFromFile(file);
+                        } catch {
+                          // handled via toast
+                        }
                       }
                       event.target.value = "";
                     }}

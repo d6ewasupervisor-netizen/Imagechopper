@@ -6,6 +6,7 @@ const Toolbar = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { actions } = useEditor();
   const zones = useEditorStore((state) => state.zones);
+  const isExporting = useEditorStore((state) => state.isExporting);
   const canUndo = useEditorStore(selectCanUndo);
   const canRedo = useEditorStore(selectCanRedo);
   const undo = useEditorStore((state) => state.undo);
@@ -29,9 +30,9 @@ const Toolbar = () => {
       <button
         className="btn primary"
         onClick={actions.exportZones}
-        disabled={zones.length === 0}
+        disabled={zones.length === 0 || isExporting}
       >
-        Export Zones
+        {isExporting ? "Exporting..." : "Export Zones"}
       </button>
       <input
         ref={fileInputRef}
@@ -41,7 +42,11 @@ const Toolbar = () => {
         onChange={async (event) => {
           const file = event.target.files?.[0];
           if (file) {
-            await actions.loadImageFromFile(file);
+            try {
+              await actions.loadImageFromFile(file);
+            } catch {
+              // handled via toast
+            }
           }
           event.target.value = "";
         }}

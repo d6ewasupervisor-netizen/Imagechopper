@@ -18,6 +18,9 @@ export class CanvasManager {
   setCanvas(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
+    if (!this.ctx) {
+      throw new Error("Unable to initialize 2D canvas context.");
+    }
   }
 
   setImage(image: HTMLImageElement | null) {
@@ -73,14 +76,28 @@ export class CanvasManager {
     };
   }
 
-  exportZones(zones: Zone[], baseName: string) {
+  async exportZones(
+    zones: Zone[],
+    baseName: string,
+    options?: {
+      format?: "image/png" | "image/jpeg" | "image/webp";
+      quality?: number;
+      onProgress?: (completed: number, total: number) => void;
+    }
+  ) {
     if (!this.image || zones.length === 0) return [];
-    return zones.map((zone, index) => {
+    const format = options?.format ?? "image/png";
+    const quality = options?.quality;
+    const extension = format.split("/")[1] ?? "png";
+    const results: { name: string; blob: Blob }[] = [];
+    for (const [index, zone] of zones.entries()) {
       const canvas = document.createElement("canvas");
       canvas.width = Math.ceil(zone.width);
       canvas.height = Math.ceil(zone.height);
       const ctx = canvas.getContext("2d");
-      if (!ctx) return null;
+      if (!ctx) {
+        throw new Error("Failed to create export canvas.");
+      }
       ctx.filter = this.getFilterString();
       if (zone.type === "rect") {
         ctx.drawImage(
@@ -119,11 +136,26 @@ export class CanvasManager {
         ctx.restore();
       }
       ctx.filter = "none";
-      return {
-        name: `${baseName}_${String(index + 1).padStart(2, "0")}.png`,
-        dataUrl: canvas.toDataURL("image/png"),
-      };
-    }).filter(Boolean) as { name: string; dataUrl: string }[];
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (result) => {
+            if (!result) {
+              reject(new Error("Failed to generate export image."));
+              return;
+            }
+            resolve(result);
+          },
+          format,
+          quality
+        );
+      });
+      results.push({
+        name: `${baseName}_${String(index + 1).padStart(2, "0")}.${extension}`,
+        blob,
+      });
+      options?.onProgress?.(results.length, zones.length);
+    }
+    return results;
   }
 
   private getFilterString() {

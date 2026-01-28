@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Layer, Line, Rect, Stage } from "react-konva";
 import Konva from "konva";
+import { toast } from "sonner";
 import { useEditor } from "../../context/EditorContext";
 import {
   selectCanvasMetrics,
@@ -49,7 +50,11 @@ const CanvasWorkspace = () => {
 
   useEffect(() => {
     if (canvasRef.current) {
-      canvasManager.current.setCanvas(canvasRef.current);
+      try {
+        canvasManager.current.setCanvas(canvasRef.current);
+      } catch (error) {
+        toast.error("Canvas could not initialize in this browser.");
+      }
     }
   }, [canvasManager]);
 
@@ -151,7 +156,11 @@ const CanvasWorkspace = () => {
           event.preventDefault();
           const file = event.dataTransfer.files?.[0];
           if (file) {
-            await actions.loadImageFromFile(file);
+            try {
+              await actions.loadImageFromFile(file);
+            } catch {
+              // handled via toast
+            }
           }
         }}
       >
