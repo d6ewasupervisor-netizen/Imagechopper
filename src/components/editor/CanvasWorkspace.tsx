@@ -242,35 +242,6 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
               <button className="btn primary" onClick={onOpenImage}>
                 Open Image
               </button>
-              <button
-                className="btn ghost"
-                onClick={async () => {
-                  try {
-                    await actions.loadImageFromUrl(
-                      "data:image/svg+xml;charset=utf-8," +
-                        encodeURIComponent(
-                          `<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'>
-                            <defs>
-                              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
-                                <stop offset='0%' stop-color='#2563eb'/>
-                                <stop offset='100%' stop-color='#60a5fa'/>
-                              </linearGradient>
-                            </defs>
-                            <rect width='1200' height='800' fill='url(#g)'/>
-                            <rect x='80' y='80' width='1040' height='640' fill='none' stroke='#e2e8f0' stroke-width='6'/>
-                            <circle cx='600' cy='400' r='180' fill='rgba(15,23,42,0.4)'/>
-                            <text x='600' y='420' font-size='56' text-anchor='middle' fill='#e2e8f0' font-family='Arial, sans-serif'>Sample Image</text>
-                          </svg>`
-                        ),
-                      "Sample image"
-                    );
-                  } catch {
-                    // handled via toast
-                  }
-                }}
-              >
-                Try Sample Image
-              </button>
             </div>
           </div>
         )}

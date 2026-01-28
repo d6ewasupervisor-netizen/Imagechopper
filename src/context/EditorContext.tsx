@@ -10,7 +10,6 @@ import { Point, Zone } from "../types/editor";
 
 interface EditorActions {
   loadImageFromFile: (file: File) => Promise<void>;
-  loadImageFromUrl: (url: string, label?: string) => Promise<void>;
   handlePointerDown: (point: Point) => void;
   handlePointerMove: (point: Point) => void;
   handlePointerUp: (point: Point) => void;
@@ -90,26 +89,6 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           throw error;
         } finally {
           URL.revokeObjectURL(url);
-        }
-      },
-      loadImageFromUrl: async (url, label = "Sample image") => {
-        const img = new Image();
-        try {
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = () => reject(new Error("Failed to load image"));
-            img.src = url;
-          });
-          canvasManagerRef.current.setImage(img);
-          useEditorStore.getState().setImageInfo({ width: img.width, height: img.height });
-          useEditorStore.getState().clearZones();
-          useEditorStore.getState().resetAdjustments();
-          useEditorStore.getState().resetHistory();
-          useEditorStore.getState().pushHistory(`Load ${label}`);
-          toast.success(`${label} loaded.`);
-        } catch (error) {
-          toast.error("Could not load the sample image.");
-          throw error;
         }
       },
       handlePointerDown: (point) => {
