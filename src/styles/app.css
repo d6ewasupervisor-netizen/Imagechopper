@@ -1,0 +1,356 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b0f17;
+  --panel: #111827;
+  --panel-2: #0f172a;
+  --panel-3: #0b1220;
+  --border: rgba(148, 163, 184, 0.15);
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --accent-2: #34d399;
+  --danger: #f87171;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #16213e, #0b0f17 65%);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  color: var(--text);
+}
+
+button {
+  font-family: inherit;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  position: relative;
+  z-index: 20;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.menu-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.menu {
+  position: relative;
+}
+
+.menu-trigger {
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: 0.2s ease;
+}
+
+.menu-trigger:hover,
+.menu:hover .menu-trigger,
+.menu:focus-within .menu-trigger {
+  border-color: rgba(96, 165, 250, 0.6);
+  color: #fff;
+}
+
+.menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 200px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 30;
+}
+
+.menu:hover .menu-panel,
+.menu:focus-within .menu-panel {
+  display: flex;
+}
+
+.menu-item {
+  border: 1px solid transparent;
+  background: var(--panel-2);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.menu-item:hover {
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.menu-item.active {
+  border-color: rgba(96, 165, 250, 0.8);
+  background: rgba(96, 165, 250, 0.2);
+  color: #fff;
+}
+
+.menu-item:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn {
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: 0.2s ease;
+}
+
+.btn:hover {
+  border-color: rgba(96, 165, 250, 0.6);
+  color: #fff;
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border: none;
+  box-shadow: 0 12px 20px rgba(37, 99, 235, 0.3);
+}
+
+.btn.ghost {
+  background: transparent;
+}
+
+.btn.small {
+  padding: 6px 10px;
+  font-size: 0.75rem;
+}
+
+.btn.danger {
+  border-color: rgba(248, 113, 113, 0.5);
+  color: var(--danger);
+}
+
+.btn.active {
+  border-color: rgba(96, 165, 250, 0.8);
+  color: #fff;
+  background: rgba(96, 165, 250, 0.2);
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 260px 1fr 280px;
+  gap: 16px;
+  padding: 16px;
+  height: calc(100vh - 64px);
+}
+
+.sidebar {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.section-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tool-btn {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  font-size: 0.78rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.tool-btn.active {
+  border-color: rgba(96, 165, 250, 0.7);
+  color: #fff;
+  background: rgba(59, 130, 246, 0.25);
+}
+
+.tool-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.canvas-pane {
+  background: var(--panel);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+}
+
+.canvas-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.canvas-wrap {
+  position: relative;
+  flex: 1;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #0b1220, #0f172a);
+  min-height: 320px;
+  width: 100%;
+  height: 100%;
+}
+
+.preview-canvas,
+.konva-canvas {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.6);
+  display: block;
+}
+
+.konva-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.konva-overlay.active {
+  pointer-events: auto;
+}
+
+.drop-overlay {
+  position: absolute;
+  inset: 16px;
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 20px;
+}
+
+.statusbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.zones-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.zone-item {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  font-size: 0.78rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.zone-item.active {
+  border-color: rgba(96, 165, 250, 0.6);
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.hint {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+@media (max-width: 1100px) {
+  .workspace {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .sidebar {
+    order: 2;
+  }
+
+  .canvas-pane {
+    order: 1;
+  }
+}
