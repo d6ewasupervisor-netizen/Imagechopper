@@ -24,9 +24,12 @@ interface EditorState {
   selectedZoneIds: string[];
   drawing: DrawingState;
   imageInfo: ImageInfo | null;
+  imageDataUrl: string | null;
   canvasMetrics: CanvasMetrics | null;
   adjustments: AdjustmentSettings;
   exportBaseName: string;
+  exportFormat: "image/png" | "image/jpeg" | "image/webp";
+  exportQuality: number;
   exportAsZip: boolean;
   isExporting: boolean;
   exportProgress: number;
@@ -46,11 +49,14 @@ interface EditorState {
   setSelectedZoneIds: (ids: string[]) => void;
   setDrawing: (drawing: DrawingState) => void;
   setImageInfo: (info: ImageInfo | null) => void;
+  setImageDataUrl: (dataUrl: string | null) => void;
   setCanvasMetrics: (metrics: CanvasMetrics | null) => void;
   setAdjustment: (key: keyof AdjustmentSettings, value: number) => void;
   resetAdjustments: () => void;
   clearZones: () => void;
   setExportBaseName: (name: string) => void;
+  setExportFormat: (format: "image/png" | "image/jpeg" | "image/webp") => void;
+  setExportQuality: (value: number) => void;
   setExportAsZip: (value: boolean) => void;
   setExportStatus: (status: {
     isExporting: boolean;
@@ -74,9 +80,12 @@ export const useEditorStore = create<EditorState>((set) => ({
   selectedZoneIds: [],
   drawing: null,
   imageInfo: null,
+  imageDataUrl: null,
   canvasMetrics: null,
   adjustments: { brightness: 0, contrast: 0, saturation: 0, blur: 0 },
   exportBaseName: "custom",
+  exportFormat: "image/png",
+  exportQuality: 0.9,
   exportAsZip: true,
   isExporting: false,
   exportProgress: 0,
@@ -104,6 +113,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   setSelectedZoneIds: (ids) => set({ selectedZoneIds: ids }),
   setDrawing: (drawing) => set({ drawing }),
   setImageInfo: (info) => set({ imageInfo: info }),
+  setImageDataUrl: (dataUrl) => set({ imageDataUrl: dataUrl }),
   setCanvasMetrics: (metrics) => set({ canvasMetrics: metrics }),
   setAdjustment: (key, value) =>
     set((state) => ({ adjustments: { ...state.adjustments, [key]: value } })),
@@ -111,6 +121,8 @@ export const useEditorStore = create<EditorState>((set) => ({
     set({ adjustments: { brightness: 0, contrast: 0, saturation: 0, blur: 0 } }),
   clearZones: () => set({ zones: [], selectedZoneIds: [], drawing: null }),
   setExportBaseName: (name) => set({ exportBaseName: name }),
+  setExportFormat: (format) => set({ exportFormat: format }),
+  setExportQuality: (value) => set({ exportQuality: value }),
   setExportAsZip: (value) => set({ exportAsZip: value }),
   setExportStatus: (status) => set(status),
   setExportAbort: (value) => set({ exportAbort: value }),

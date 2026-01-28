@@ -10,6 +10,8 @@ import { Point, Zone } from "../types/editor";
 
 interface EditorActions {
   loadImageFromFile: (file: File) => Promise<void>;
+  saveProject: () => void;
+  loadProjectFromFile: (file: File) => Promise<void>;
   handlePointerDown: (point: Point) => void;
   handlePointerMove: (point: Point) => void;
   handlePointerUp: (point: Point) => void;
@@ -34,6 +36,22 @@ const downloadBlob = (blob: Blob, filename: string) => {
   link.click();
   URL.revokeObjectURL(url);
 };
+
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Failed to read file."));
+    reader.readAsDataURL(file);
+  });
+
+const readFileAsText = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Failed to read file."));
+    reader.readAsText(file);
+  });
 
 const buildToolContext = (): ZoneToolContext => ({
   getZones: () => useEditorStore.getState().zones,
@@ -70,22 +88,28 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (tool === "polygon") fn(point);
     };
 
+    const loadImageFromDataUrl = async (dataUrl: string) => {
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("Failed to load image"));
+        img.src = dataUrl;
+      });
+      canvasManagerRef.current.setImage(img);
+      return img;
+    };
+
     return {
       loadImageFromFile: async (file) => {
         if (!file.type.startsWith("image/")) {
           toast.error("Unsupported file type. Please select an image.");
           return;
         }
-        const url = URL.createObjectURL(file);
-        const img = new Image();
         try {
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = () => reject(new Error("Failed to load image"));
-            img.src = url;
-          });
-          canvasManagerRef.current.setImage(img);
+          const dataUrl = await readFileAsDataUrl(file);
+          const img = await loadImageFromDataUrl(dataUrl);
           useEditorStore.getState().setImageInfo({ width: img.width, height: img.height });
+          useEditorStore.getState().setImageDataUrl(dataUrl);
           useEditorStore.getState().clearZones();
           useEditorStore.getState().resetAdjustments();
           useEditorStore.getState().resetHistory();
@@ -94,8 +118,82 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         } catch (error) {
           toast.error("Could not load that image.");
           throw error;
-        } finally {
-          URL.revokeObjectURL(url);
+        }
+      },
+      saveProject: () => {
+        const { isPro, imageDataUrl, zones, adjustments, exportBaseName, exportFormat, exportQuality } =
+          useEditorStore.getState();
+        if (!isPro) {
+          toast.message("Project files are available on Pro.");
+          return;
+        }
+        if (!imageDataUrl) {
+          toast.error("Load an image before saving a project.");
+          return;
+        }
+        const payload = {
+          version: 1,
+          imageDataUrl,
+          zones,
+          adjustments,
+          exportBaseName,
+          exportFormat,
+          exportQuality,
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {
+          type: "application/json",
+        });
+        downloadBlob(blob, "imagechopper-project.json");
+        toast.success("Project saved.");
+      },
+      loadProjectFromFile: async (file) => {
+        const { isPro } = useEditorStore.getState();
+        if (!isPro) {
+          toast.message("Project files are available on Pro.");
+          return;
+        }
+        try {
+          const text = await readFileAsText(file);
+          const data = JSON.parse(text) as {
+            version?: number;
+            imageDataUrl?: string;
+            zones?: Zone[];
+            adjustments?: Record<string, number>;
+            exportBaseName?: string;
+            exportFormat?: "image/png" | "image/jpeg" | "image/webp";
+            exportQuality?: number;
+          };
+          if (!data?.imageDataUrl || !Array.isArray(data.zones)) {
+            toast.error("Invalid project file.");
+            return;
+          }
+          const img = await loadImageFromDataUrl(data.imageDataUrl);
+          useEditorStore.getState().setImageInfo({ width: img.width, height: img.height });
+          useEditorStore.getState().setImageDataUrl(data.imageDataUrl);
+          useEditorStore.getState().setZones(data.zones);
+          if (data.adjustments) {
+            useEditorStore.getState().resetAdjustments();
+            useEditorStore.getState().setAdjustment("brightness", data.adjustments.brightness ?? 0);
+            useEditorStore.getState().setAdjustment("contrast", data.adjustments.contrast ?? 0);
+            useEditorStore.getState().setAdjustment("saturation", data.adjustments.saturation ?? 0);
+            useEditorStore.getState().setAdjustment("blur", data.adjustments.blur ?? 0);
+          }
+          if (typeof data.exportBaseName === "string") {
+            useEditorStore.getState().setExportBaseName(data.exportBaseName);
+          }
+          if (data.exportFormat) {
+            useEditorStore.getState().setExportFormat(data.exportFormat);
+          }
+          if (typeof data.exportQuality === "number") {
+            useEditorStore.getState().setExportQuality(data.exportQuality);
+          }
+          useEditorStore.getState().setSelectedZoneIds([]);
+          useEditorStore.getState().resetHistory();
+          useEditorStore.getState().pushHistory("Load project");
+          toast.success("Project loaded.");
+        } catch (error) {
+          toast.error("Failed to load project.");
+          throw error;
         }
       },
       handlePointerDown: (point) => {
@@ -126,9 +224,13 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           return;
         }
         const baseName = useEditorStore.getState().exportBaseName.trim() || "custom";
-        const { exportAsZip, isPro } = useEditorStore.getState();
+        const { exportAsZip, isPro, exportFormat, exportQuality } = useEditorStore.getState();
         if (exportAsZip && !isPro) {
           toast.message("ZIP export is available on Pro.");
+          return;
+        }
+        if (!isPro && exportFormat !== "image/png") {
+          toast.message("JPEG/WebP exports are available on Pro.");
           return;
         }
         useEditorStore.getState().setExportAbort(false);
@@ -137,6 +239,8 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           .setExportStatus({ isExporting: true, exportProgress: 0, exportStatus: "Preparing" });
         try {
           const exports = await canvasManagerRef.current.exportZones(zones, baseName, {
+            format: exportFormat,
+            quality: exportFormat === "image/png" ? undefined : exportQuality,
             onProgress: (completed, total) => {
               useEditorStore.getState().setExportStatus({
                 isExporting: true,

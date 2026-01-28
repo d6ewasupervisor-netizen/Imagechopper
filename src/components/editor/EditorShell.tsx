@@ -24,12 +24,17 @@ const EditorShell = () => {
   const [showHelp, setShowHelp] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const projectInputRef = useRef<HTMLInputElement | null>(null);
   const tool = useEditorStore((state) => state.tool);
   const setTool = useEditorStore((state) => state.setTool);
   const imageInfo = useEditorStore((state) => state.imageInfo);
   const canvasMetrics = useEditorStore((state) => state.canvasMetrics);
   const exportBaseName = useEditorStore((state) => state.exportBaseName);
   const setExportBaseName = useEditorStore((state) => state.setExportBaseName);
+  const exportFormat = useEditorStore((state) => state.exportFormat);
+  const setExportFormat = useEditorStore((state) => state.setExportFormat);
+  const exportQuality = useEditorStore((state) => state.exportQuality);
+  const setExportQuality = useEditorStore((state) => state.setExportQuality);
   const exportAsZip = useEditorStore((state) => state.exportAsZip);
   const setExportAsZip = useEditorStore((state) => state.setExportAsZip);
   const isExporting = useEditorStore((state) => state.isExporting);
@@ -81,11 +86,16 @@ const EditorShell = () => {
 
   const zoomPercent = Math.round(zoom * 100);
   const selectedCount = selectedZoneIds.length;
-  const outputCountLabel = `${zones.length} outputs · Format: PNG`;
+  const formatLabel = exportFormat.replace("image/", "").toUpperCase();
+  const outputCountLabel = `${zones.length} outputs · Format: ${formatLabel}`;
   const planLabel = isPro ? "Pro" : "Free";
 
   const handleUpgrade = () => {
     toast.message("Upgrade flow coming soon.");
+  };
+
+  const handleProjectOpen = () => {
+    projectInputRef.current?.click();
   };
   const adjustZoom = (delta: number) => {
     const next = Math.min(4, Math.max(0.25, Math.round((zoom + delta) * 100) / 100));
@@ -207,6 +217,12 @@ const EditorShell = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (!isPro && exportFormat !== "image/png") {
+      setExportFormat("image/png");
+    }
+  }, [isPro, exportFormat, setExportFormat]);
+
   return (
     <div className="app">
       <header className="topbar">
@@ -251,6 +267,23 @@ const EditorShell = () => {
           if (file) {
             try {
               await actions.loadImageFromFile(file);
+            } catch {
+              // handled via toast
+            }
+          }
+          event.target.value = "";
+        }}
+      />
+      <input
+        ref={projectInputRef}
+        type="file"
+        accept="application/json"
+        hidden
+        onChange={async (event) => {
+          const file = event.target.files?.[0];
+          if (file) {
+            try {
+              await actions.loadProjectFromFile(file);
             } catch {
               // handled via toast
             }
@@ -604,6 +637,47 @@ const EditorShell = () => {
                       Cancel Export
                     </button>
                   )}
+                  <label className="menu-label" htmlFor="exportFormat">
+                    Format
+                  </label>
+                  <select
+                    id="exportFormat"
+                    className="menu-input"
+                    value={exportFormat}
+                    onChange={(event) =>
+                      setExportFormat(event.target.value as "image/png" | "image/jpeg" | "image/webp")
+                    }
+                    disabled={!isPro}
+                  >
+                    <option value="image/png">PNG (Free)</option>
+                    <option value="image/jpeg">JPEG (Pro)</option>
+                    <option value="image/webp">WebP (Pro)</option>
+                  </select>
+                  {!isPro && (
+                    <div className="hint">
+                      JPEG/WebP exports are Pro features.{" "}
+                      <button className="link-button" onClick={handleUpgrade}>
+                        Upgrade
+                      </button>
+                    </div>
+                  )}
+                  {(exportFormat === "image/jpeg" || exportFormat === "image/webp") && (
+                    <>
+                      <label className="menu-label" htmlFor="exportQuality">
+                        Quality
+                      </label>
+                      <input
+                        id="exportQuality"
+                        type="range"
+                        min={0.5}
+                        max={1}
+                        step={0.05}
+                        value={exportQuality}
+                        onChange={(event) => setExportQuality(Number(event.target.value))}
+                      />
+                      <div className="hint">{Math.round(exportQuality * 100)}% quality</div>
+                    </>
+                  )}
                   <label className="checkbox-row">
                     <input
                       type="checkbox"
@@ -648,6 +722,12 @@ const EditorShell = () => {
                   </button>
                   <button className="tab-action" onClick={handleOpen}>
                     Open Image
+                  </button>
+                  <button className="tab-action" onClick={actions.saveProject}>
+                    Save Project (Pro)
+                  </button>
+                  <button className="tab-action" onClick={handleProjectOpen}>
+                    Load Project (Pro)
                   </button>
                 </div>
               )}
@@ -736,7 +816,8 @@ const EditorShell = () => {
                 <div className="help-section">
                   <div className="section-title">Subscription</div>
                   <div className="hint">
-                    Free: up to {maxFreeZones} zones per image. Pro: unlimited zones + ZIP exports.
+                    Free: up to {maxFreeZones} zones per image and PNG exports. Pro: unlimited
+                    zones, JPEG/WebP, ZIP exports, and project files.
                   </div>
                   <button className="btn small primary" onClick={handleUpgrade}>
                     Upgrade to Pro
