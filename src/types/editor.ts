@@ -8,6 +8,8 @@ export interface Point {
 export interface RectZone {
   id: string;
   type: "rect";
+  label?: string;
+  color?: string;
   x: number;
   y: number;
   width: number;
@@ -17,6 +19,8 @@ export interface RectZone {
 export interface PolygonZone {
   id: string;
   type: "polygon";
+  label?: string;
+  color?: string;
   points: Point[];
   x: number;
   y: number;

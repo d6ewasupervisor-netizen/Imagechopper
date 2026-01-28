@@ -30,6 +30,23 @@ const computeBounds = (points: Point[]) => {
   };
 };
 
+const hexToRgba = (color: string, alpha: number) => {
+  if (!color.startsWith("#")) return color;
+  const hex = color.replace("#", "");
+  const normalized =
+    hex.length === 3
+      ? hex
+          .split("")
+          .map((ch) => ch + ch)
+          .join("")
+      : hex;
+  if (normalized.length !== 6) return color;
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
   const { canvasManager, actions } = useEditor();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -147,13 +164,21 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
   };
 
   const handleDragEnd = (zone: Zone, event: Konva.KonvaEventObject<DragEvent>) => {
-    if (!metrics) return;
+    if (!metrics || !imageInfo) return;
+    const snapThreshold = 6;
     const node = event.target;
     if (zone.type === "rect") {
-      updateZone(zone.id, {
-        x: node.x() / metrics.scale,
-        y: node.y() / metrics.scale,
-      });
+      let nextX = node.x() / metrics.scale;
+      let nextY = node.y() / metrics.scale;
+      if (Math.abs(nextX) < snapThreshold) nextX = 0;
+      if (Math.abs(nextY) < snapThreshold) nextY = 0;
+      if (Math.abs(nextX + zone.width - imageInfo.width) < snapThreshold) {
+        nextX = imageInfo.width - zone.width;
+      }
+      if (Math.abs(nextY + zone.height - imageInfo.height) < snapThreshold) {
+        nextY = imageInfo.height - zone.height;
+      }
+      updateZone(zone.id, { x: nextX, y: nextY });
       pushHistory("Move zone");
       return;
     }
@@ -163,8 +188,23 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
       x: point.x + dx,
       y: point.y + dy,
     }));
-    const bounds = computeBounds(nextPoints);
-    updateZone(zone.id, { points: nextPoints, ...bounds });
+    let bounds = computeBounds(nextPoints);
+    let snapX = 0;
+    let snapY = 0;
+    if (Math.abs(bounds.x) < snapThreshold) snapX = -bounds.x;
+    if (Math.abs(bounds.y) < snapThreshold) snapY = -bounds.y;
+    if (Math.abs(bounds.x + bounds.width - imageInfo.width) < snapThreshold) {
+      snapX = imageInfo.width - (bounds.x + bounds.width);
+    }
+    if (Math.abs(bounds.y + bounds.height - imageInfo.height) < snapThreshold) {
+      snapY = imageInfo.height - (bounds.y + bounds.height);
+    }
+    const snappedPoints = nextPoints.map((point) => ({
+      x: point.x + snapX,
+      y: point.y + snapY,
+    }));
+    bounds = computeBounds(snappedPoints);
+    updateZone(zone.id, { points: snappedPoints, ...bounds });
     node.position({ x: 0, y: 0 });
     pushHistory("Move zone");
   };
@@ -283,6 +323,8 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
                 <Layer>
                   {zones.map((zone) => {
                     const isSelected = selectedZoneIds.includes(zone.id);
+                    const strokeColor = zone.color ?? "#94a3b8";
+                    const fillColor = hexToRgba(strokeColor, 0.16);
                     if (zone.type === "rect") {
                       return (
                         <Rect
@@ -291,11 +333,9 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
                           y={zone.y * metrics.scale}
                           width={zone.width * metrics.scale}
                           height={zone.height * metrics.scale}
-                          stroke={isSelected ? "#60a5fa" : "#94a3b8"}
-                          strokeWidth={2}
-                          fill={
-                            isSelected ? "rgba(96, 165, 250, 0.2)" : "rgba(148, 163, 184, 0.12)"
-                          }
+                          stroke={strokeColor}
+                          strokeWidth={isSelected ? 3 : 2}
+                          fill={fillColor}
                           draggable={tool === "select"}
                           onDragEnd={(event) => handleDragEnd(zone, event)}
                           onClick={() => setSelectedZoneIds([zone.id])}
@@ -310,11 +350,9 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
                           point.y * metrics.scale,
                         ])}
                         closed
-                        stroke={isSelected ? "#34d399" : "#94a3b8"}
-                        strokeWidth={2}
-                        fill={
-                          isSelected ? "rgba(52, 211, 153, 0.2)" : "rgba(148, 163, 184, 0.12)"
-                        }
+                        stroke={strokeColor}
+                        strokeWidth={isSelected ? 3 : 2}
+                        fill={fillColor}
                         draggable={tool === "select"}
                         onDragEnd={(event) => handleDragEnd(zone, event)}
                         onClick={() => setSelectedZoneIds([zone.id])}
@@ -329,7 +367,7 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
                         y={selectedZone.y * metrics.scale}
                         width={selectedZone.width * metrics.scale}
                         height={selectedZone.height * metrics.scale}
-                        stroke="rgba(96, 165, 250, 0.7)"
+                        stroke={hexToRgba(selectedZone.color ?? "#60a5fa", 0.7)}
                         strokeWidth={1}
                         dash={[4, 4]}
                       />

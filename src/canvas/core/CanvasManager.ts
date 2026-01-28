@@ -84,6 +84,7 @@ export class CanvasManager {
       quality?: number;
       onProgress?: (completed: number, total: number) => void;
       shouldCancel?: () => boolean;
+      nameForZone?: (zone: Zone, index: number, extension: string, baseName: string) => string;
     }
   ) {
     if (!this.image || zones.length === 0) return [];
@@ -157,7 +158,9 @@ export class CanvasManager {
         throw new Error("Export canceled");
       }
       results.push({
-        name: `${baseName}_${String(index + 1).padStart(2, "0")}.${extension}`,
+        name:
+          options?.nameForZone?.(zone, index, extension, baseName) ??
+          `${baseName}_${String(index + 1).padStart(2, "0")}.${extension}`,
         blob,
       });
       options?.onProgress?.(results.length, zones.length);

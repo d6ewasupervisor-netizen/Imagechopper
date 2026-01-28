@@ -12,6 +12,7 @@ interface EditorActions {
   loadImageFromFile: (file: File) => Promise<void>;
   saveProject: () => void;
   loadProjectFromFile: (file: File) => Promise<void>;
+  exportMetadata: () => void;
   handlePointerDown: (point: Point) => void;
   handlePointerMove: (point: Point) => void;
   handlePointerUp: (point: Point) => void;
@@ -53,6 +54,15 @@ const readFileAsText = (file: File) =>
     reader.readAsText(file);
   });
 
+const PALETTE = ["#60a5fa", "#34d399", "#f59e0b", "#f472b6", "#a78bfa", "#f87171"];
+
+const applyZoneDefaults = (zones: Zone[], existingCount = 0) =>
+  zones.map((zone, index) => ({
+    ...zone,
+    label: zone.label ?? `Zone ${existingCount + index + 1}`,
+    color: zone.color ?? PALETTE[(existingCount + index) % PALETTE.length],
+  }));
+
 const buildToolContext = (): ZoneToolContext => ({
   getZones: () => useEditorStore.getState().zones,
   setZones: (zones: Zone[]) => useEditorStore.getState().setZones(zones),
@@ -62,7 +72,8 @@ const buildToolContext = (): ZoneToolContext => ({
       toast.message(`Free plan allows up to ${maxFreeZones} zones.`);
       return;
     }
-    useEditorStore.getState().addZone(zone);
+    const [withDefaults] = applyZoneDefaults([zone], zones.length);
+    useEditorStore.getState().addZone(withDefaults);
   },
   setSelectedZoneIds: (ids: string[]) => useEditorStore.getState().setSelectedZoneIds(ids),
   getDrawing: () => useEditorStore.getState().drawing,
@@ -99,6 +110,31 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return img;
     };
 
+    const formatName = (
+      pattern: string,
+      zone: Zone,
+      index: number,
+      extension: string,
+      baseName: string
+    ) => {
+      const safeLabel = (zone.label ?? "zone").replace(/[^a-z0-9-_]+/gi, "_").toLowerCase();
+      const idx = String(index + 1).padStart(2, "0");
+      const replacements: Record<string, string> = {
+        "{base}": baseName,
+        "{index}": idx,
+        "{label}": safeLabel,
+        "{w}": String(Math.round(zone.width)),
+        "{h}": String(Math.round(zone.height)),
+      };
+      const trimmed = pattern.trim();
+      const basePattern = trimmed.length > 0 ? trimmed : "{base}_{index}";
+      const name = Object.entries(replacements).reduce(
+        (value, [token, rep]) => value.split(token).join(rep),
+        basePattern
+      );
+      return `${name}.${extension}`;
+    };
+
     return {
       loadImageFromFile: async (file) => {
         if (!file.type.startsWith("image/")) {
@@ -121,8 +157,16 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       },
       saveProject: () => {
-        const { isPro, imageDataUrl, zones, adjustments, exportBaseName, exportFormat, exportQuality } =
-          useEditorStore.getState();
+        const {
+          isPro,
+          imageDataUrl,
+          zones,
+          adjustments,
+          exportBaseName,
+          exportFormat,
+          exportQuality,
+          exportNamePattern,
+        } = useEditorStore.getState();
         if (!isPro) {
           toast.message("Project files are available on Pro.");
           return;
@@ -139,6 +183,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           exportBaseName,
           exportFormat,
           exportQuality,
+          exportNamePattern,
         };
         const blob = new Blob([JSON.stringify(payload, null, 2)], {
           type: "application/json",
@@ -162,6 +207,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             exportBaseName?: string;
             exportFormat?: "image/png" | "image/jpeg" | "image/webp";
             exportQuality?: number;
+            exportNamePattern?: string;
           };
           if (!data?.imageDataUrl || !Array.isArray(data.zones)) {
             toast.error("Invalid project file.");
@@ -170,7 +216,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const img = await loadImageFromDataUrl(data.imageDataUrl);
           useEditorStore.getState().setImageInfo({ width: img.width, height: img.height });
           useEditorStore.getState().setImageDataUrl(data.imageDataUrl);
-          useEditorStore.getState().setZones(data.zones);
+          useEditorStore.getState().setZones(applyZoneDefaults(data.zones));
           if (data.adjustments) {
             useEditorStore.getState().resetAdjustments();
             useEditorStore.getState().setAdjustment("brightness", data.adjustments.brightness ?? 0);
@@ -187,6 +233,9 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (typeof data.exportQuality === "number") {
             useEditorStore.getState().setExportQuality(data.exportQuality);
           }
+          if (typeof data.exportNamePattern === "string") {
+            useEditorStore.getState().setExportNamePattern(data.exportNamePattern);
+          }
           useEditorStore.getState().setSelectedZoneIds([]);
           useEditorStore.getState().resetHistory();
           useEditorStore.getState().pushHistory("Load project");
@@ -195,6 +244,38 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           toast.error("Failed to load project.");
           throw error;
         }
+      },
+      exportMetadata: () => {
+        const { isPro, imageInfo, zones, exportBaseName } = useEditorStore.getState();
+        if (!isPro) {
+          toast.message("Metadata export is available on Pro.");
+          return;
+        }
+        if (!imageInfo) {
+          toast.error("Load an image before exporting metadata.");
+          return;
+        }
+        const payload = {
+          version: 1,
+          image: imageInfo,
+          zones: zones.map((zone) => ({
+            id: zone.id,
+            type: zone.type,
+            label: zone.label ?? "",
+            color: zone.color ?? "",
+            x: zone.x,
+            y: zone.y,
+            width: zone.width,
+            height: zone.height,
+            points: zone.type === "polygon" ? zone.points : undefined,
+          })),
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {
+          type: "application/json",
+        });
+        const name = `${exportBaseName.trim() || "custom"}_metadata.json`;
+        downloadBlob(blob, name);
+        toast.success("Metadata exported.");
       },
       handlePointerDown: (point) => {
         const tool = getTool();
@@ -224,7 +305,8 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           return;
         }
         const baseName = useEditorStore.getState().exportBaseName.trim() || "custom";
-        const { exportAsZip, isPro, exportFormat, exportQuality } = useEditorStore.getState();
+        const { exportAsZip, isPro, exportFormat, exportQuality, exportNamePattern } =
+          useEditorStore.getState();
         if (exportAsZip && !isPro) {
           toast.message("ZIP export is available on Pro.");
           return;
@@ -241,6 +323,8 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const exports = await canvasManagerRef.current.exportZones(zones, baseName, {
             format: exportFormat,
             quality: exportFormat === "image/png" ? undefined : exportQuality,
+            nameForZone: (zone, index, extension, base) =>
+              formatName(exportNamePattern, zone, index, extension, base),
             onProgress: (completed, total) => {
               useEditorStore.getState().setExportStatus({
                 isExporting: true,
@@ -351,7 +435,8 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           toast.message(`Free plan allows up to ${maxFreeZones} zones.`);
           return;
         }
-        useEditorStore.getState().setZones(zones);
+        const withDefaults = applyZoneDefaults(zones);
+        useEditorStore.getState().setZones(withDefaults);
         useEditorStore.getState().setSelectedZoneIds([]);
         useEditorStore.getState().setTool("select");
         useEditorStore.getState().pushHistory("Apply template");
@@ -384,7 +469,8 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           width,
           height,
         };
-        useEditorStore.getState().setZones([zone]);
+        const [withDefaults] = applyZoneDefaults([zone]);
+        useEditorStore.getState().setZones([withDefaults]);
         useEditorStore.getState().setSelectedZoneIds([zone.id]);
         useEditorStore.getState().setTool("select");
         useEditorStore.getState().pushHistory("Apply ratio");

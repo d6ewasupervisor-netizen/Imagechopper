@@ -30,6 +30,7 @@ interface EditorState {
   exportBaseName: string;
   exportFormat: "image/png" | "image/jpeg" | "image/webp";
   exportQuality: number;
+  exportNamePattern: string;
   exportAsZip: boolean;
   isExporting: boolean;
   exportProgress: number;
@@ -57,6 +58,7 @@ interface EditorState {
   setExportBaseName: (name: string) => void;
   setExportFormat: (format: "image/png" | "image/jpeg" | "image/webp") => void;
   setExportQuality: (value: number) => void;
+  setExportNamePattern: (value: string) => void;
   setExportAsZip: (value: boolean) => void;
   setExportStatus: (status: {
     isExporting: boolean;
@@ -86,6 +88,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   exportBaseName: "custom",
   exportFormat: "image/png",
   exportQuality: 0.9,
+  exportNamePattern: "{base}_{index}",
   exportAsZip: true,
   isExporting: false,
   exportProgress: 0,
@@ -123,6 +126,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   setExportBaseName: (name) => set({ exportBaseName: name }),
   setExportFormat: (format) => set({ exportFormat: format }),
   setExportQuality: (value) => set({ exportQuality: value }),
+  setExportNamePattern: (value) => set({ exportNamePattern: value }),
   setExportAsZip: (value) => set({ exportAsZip: value }),
   setExportStatus: (status) => set(status),
   setExportAbort: (value) => set({ exportAbort: value }),
