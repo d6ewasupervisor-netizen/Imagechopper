@@ -38,7 +38,14 @@ const downloadBlob = (blob: Blob, filename: string) => {
 const buildToolContext = (): ZoneToolContext => ({
   getZones: () => useEditorStore.getState().zones,
   setZones: (zones: Zone[]) => useEditorStore.getState().setZones(zones),
-  addZone: (zone: Zone) => useEditorStore.getState().addZone(zone),
+  addZone: (zone: Zone) => {
+    const { zones, isPro, maxFreeZones } = useEditorStore.getState();
+    if (!isPro && zones.length >= maxFreeZones) {
+      toast.message(`Free plan allows up to ${maxFreeZones} zones.`);
+      return;
+    }
+    useEditorStore.getState().addZone(zone);
+  },
   setSelectedZoneIds: (ids: string[]) => useEditorStore.getState().setSelectedZoneIds(ids),
   getDrawing: () => useEditorStore.getState().drawing,
   setDrawing: (drawing) => useEditorStore.getState().setDrawing(drawing),
@@ -119,7 +126,11 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           return;
         }
         const baseName = useEditorStore.getState().exportBaseName.trim() || "custom";
-        const exportAsZip = useEditorStore.getState().exportAsZip;
+        const { exportAsZip, isPro } = useEditorStore.getState();
+        if (exportAsZip && !isPro) {
+          toast.message("ZIP export is available on Pro.");
+          return;
+        }
         useEditorStore.getState().setExportAbort(false);
         useEditorStore
           .getState()
@@ -231,6 +242,11 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           }
         }
         if (zones.length === 0) return;
+        const { isPro, maxFreeZones } = useEditorStore.getState();
+        if (!isPro && zones.length > maxFreeZones) {
+          toast.message(`Free plan allows up to ${maxFreeZones} zones.`);
+          return;
+        }
         useEditorStore.getState().setZones(zones);
         useEditorStore.getState().setSelectedZoneIds([]);
         useEditorStore.getState().setTool("select");

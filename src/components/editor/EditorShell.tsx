@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import CanvasWorkspace from "./CanvasWorkspace";
 import { useEditor } from "../../context/EditorContext";
 import {
@@ -35,6 +36,9 @@ const EditorShell = () => {
   const exportProgress = useEditorStore((state) => state.exportProgress);
   const exportStatus = useEditorStore((state) => state.exportStatus);
   const setExportAbort = useEditorStore((state) => state.setExportAbort);
+  const isPro = useEditorStore((state) => state.isPro);
+  const maxFreeZones = useEditorStore((state) => state.maxFreeZones);
+  const setIsPro = useEditorStore((state) => state.setIsPro);
   const adjustments = useEditorStore((state) => state.adjustments);
   const setAdjustment = useEditorStore((state) => state.setAdjustment);
   const resetAdjustments = useEditorStore((state) => state.resetAdjustments);
@@ -78,6 +82,11 @@ const EditorShell = () => {
   const zoomPercent = Math.round(zoom * 100);
   const selectedCount = selectedZoneIds.length;
   const outputCountLabel = `${zones.length} outputs · Format: PNG`;
+  const planLabel = isPro ? "Pro" : "Free";
+
+  const handleUpgrade = () => {
+    toast.message("Upgrade flow coming soon.");
+  };
   const adjustZoom = (delta: number) => {
     const next = Math.min(4, Math.max(0.25, Math.round((zoom + delta) * 100) / 100));
     setZoom(next);
@@ -222,6 +231,14 @@ const EditorShell = () => {
           >
             ?
           </button>
+          <div className="plan-pill" title="Current plan">
+            {planLabel}
+          </div>
+          {!isPro && (
+            <button className="btn primary" onClick={handleUpgrade} title="Upgrade">
+              Upgrade
+            </button>
+          )}
         </div>
       </header>
       <input
@@ -457,6 +474,14 @@ const EditorShell = () => {
                       ? `${selectedCount} selected · ${zones.length} total`
                       : `${zones.length} total zones`}
                   </div>
+                  {!isPro && (
+                    <div className="hint">
+                      Free plan limit: {maxFreeZones} zones.{" "}
+                      <button className="link-button" onClick={handleUpgrade}>
+                        Upgrade to Pro
+                      </button>
+                    </div>
+                  )}
                   {selectedZone && (
                     <div className="zone-inspector">
                       <div className="section-title">Selected zone</div>
@@ -583,10 +608,19 @@ const EditorShell = () => {
                     <input
                       type="checkbox"
                       checked={exportAsZip}
+                      disabled={!isPro}
                       onChange={(event) => setExportAsZip(event.target.checked)}
                     />
-                    Download as ZIP
+                    Download as ZIP {isPro ? "" : "(Pro)"}
                   </label>
+                  {!isPro && (
+                    <div className="hint">
+                      ZIP export is a Pro feature.{" "}
+                      <button className="link-button" onClick={handleUpgrade}>
+                        Upgrade
+                      </button>
+                    </div>
+                  )}
                   {isExporting && (
                     <div className="export-progress">
                       <div className="export-progress-label">
@@ -702,9 +736,14 @@ const EditorShell = () => {
                 <div className="help-section">
                   <div className="section-title">Subscription</div>
                   <div className="hint">
-                    Free: up to 10 zones per image. Pro: unlimited zones + ZIP exports.
+                    Free: up to {maxFreeZones} zones per image. Pro: unlimited zones + ZIP exports.
                   </div>
-                  <button className="btn small primary">Upgrade to Pro</button>
+                  <button className="btn small primary" onClick={handleUpgrade}>
+                    Upgrade to Pro
+                  </button>
+                  <button className="btn small ghost" onClick={() => setIsPro(!isPro)}>
+                    Toggle Pro (preview)
+                  </button>
                 </div>
               </div>
             </div>

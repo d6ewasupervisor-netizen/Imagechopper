@@ -231,6 +231,28 @@ select:focus-visible {
   box-shadow: 0 12px 20px rgba(37, 99, 235, 0.3);
 }
 
+.plan-pill {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.link-button {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.72rem;
+  padding: 0;
+}
+
+.link-button:hover {
+  color: #fff;
+}
+
 .btn.ghost {
   background: transparent;
 }
