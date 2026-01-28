@@ -32,6 +32,7 @@ const buildToolContext = (): ZoneToolContext => ({
   getDrawing: () => useEditorStore.getState().drawing,
   setDrawing: (drawing) => useEditorStore.getState().setDrawing(drawing),
   getImageSize: () => useEditorStore.getState().imageInfo,
+  pushHistory: (label: string) => useEditorStore.getState().pushHistory(label),
 });
 
 export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -64,6 +65,9 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         canvasManagerRef.current.setImage(img);
         useEditorStore.getState().setImageInfo({ width: img.width, height: img.height });
         useEditorStore.getState().clearZones();
+        useEditorStore.getState().resetAdjustments();
+        useEditorStore.getState().resetHistory();
+        useEditorStore.getState().pushHistory("Load image");
       },
       handlePointerDown: (point) => {
         const tool = getTool();
@@ -168,6 +172,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         useEditorStore.getState().setZones(zones);
         useEditorStore.getState().setSelectedZoneIds([]);
         useEditorStore.getState().setTool("select");
+        useEditorStore.getState().pushHistory("Apply template");
       },
       applyRatio: (ratioId) => {
         const imageInfo = useEditorStore.getState().imageInfo;
@@ -200,6 +205,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         useEditorStore.getState().setZones([zone]);
         useEditorStore.getState().setSelectedZoneIds([zone.id]);
         useEditorStore.getState().setTool("select");
+        useEditorStore.getState().pushHistory("Apply ratio");
       },
     };
   }, []);

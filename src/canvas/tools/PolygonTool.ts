@@ -60,6 +60,7 @@ export class PolygonTool implements ZoneTool {
       width: maxX - minX,
       height: maxY - minY,
     });
+    context.pushHistory("Add polygon");
     context.setDrawing(null);
   }
 }

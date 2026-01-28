@@ -32,6 +32,7 @@ export class RectTool implements ZoneTool {
       width,
       height,
     });
+    context.pushHistory("Add rectangle");
     context.setDrawing(null);
   }
 }

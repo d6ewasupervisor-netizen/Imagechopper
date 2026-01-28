@@ -8,6 +8,7 @@ export interface ZoneToolContext {
   getDrawing: () => DrawingState;
   setDrawing: (drawing: DrawingState) => void;
   getImageSize: () => { width: number; height: number } | null;
+  pushHistory: (label: string) => void;
 }
 
 export interface ZoneTool {

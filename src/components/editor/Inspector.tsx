@@ -6,6 +6,7 @@ const Inspector = () => {
   const setZones = useEditorStore((state) => state.setZones);
   const setSelectedZoneIds = useEditorStore((state) => state.setSelectedZoneIds);
   const clearZones = useEditorStore((state) => state.clearZones);
+  const pushHistory = useEditorStore((state) => state.pushHistory);
   const adjustments = useEditorStore((state) => state.adjustments);
   const setAdjustment = useEditorStore((state) => state.setAdjustment);
   const resetAdjustments = useEditorStore((state) => state.resetAdjustments);
@@ -13,6 +14,7 @@ const Inspector = () => {
   const deleteZone = (id: string) => {
     setZones(zones.filter((zone) => zone.id !== id));
     setSelectedZoneIds(selectedZoneIds.filter((zoneId) => zoneId !== id));
+    pushHistory("Delete zone");
   };
 
   return (
@@ -40,11 +42,19 @@ const Inspector = () => {
             max={max}
             value={adjustments[key]}
             onChange={(event) => setAdjustment(key, Number(event.target.value))}
+            onMouseUp={() => pushHistory("Adjustments updated")}
+            onTouchEnd={() => pushHistory("Adjustments updated")}
             style={{ width: "100%" }}
           />
         </div>
       ))}
-      <button className="btn small ghost" onClick={resetAdjustments}>
+      <button
+        className="btn small ghost"
+        onClick={() => {
+          resetAdjustments();
+          pushHistory("Reset adjustments");
+        }}
+      >
         Reset Adjustments
       </button>
 
@@ -77,7 +87,13 @@ const Inspector = () => {
         <button className="btn small ghost" onClick={() => setSelectedZoneIds([])}>
           Clear Selection
         </button>
-        <button className="btn small danger" onClick={clearZones}>
+        <button
+          className="btn small danger"
+          onClick={() => {
+            clearZones();
+            pushHistory("Clear zones");
+          }}
+        >
           Clear Zones
         </button>
       </div>

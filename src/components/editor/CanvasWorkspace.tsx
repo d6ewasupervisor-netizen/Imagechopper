@@ -45,6 +45,7 @@ const CanvasWorkspace = () => {
   const setCanvasMetrics = useEditorStore((state) => state.setCanvasMetrics);
   const setSelectedZoneIds = useEditorStore((state) => state.setSelectedZoneIds);
   const updateZone = useEditorStore((state) => state.updateZone);
+  const pushHistory = useEditorStore((state) => state.pushHistory);
 
   useEffect(() => {
     if (canvasRef.current) {
@@ -113,6 +114,7 @@ const CanvasWorkspace = () => {
         x: node.x() / metrics.scale,
         y: node.y() / metrics.scale,
       });
+      pushHistory("Move zone");
       return;
     }
     const dx = node.x() / metrics.scale;
@@ -124,6 +126,7 @@ const CanvasWorkspace = () => {
     const bounds = computeBounds(nextPoints);
     updateZone(zone.id, { points: nextPoints, ...bounds });
     node.position({ x: 0, y: 0 });
+    pushHistory("Move zone");
   };
 
   return (
