@@ -20,6 +20,7 @@ type TabId =
 const EditorShell = () => {
   const [activeTab, setActiveTab] = useState<TabId>("tools");
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const tool = useEditorStore((state) => state.tool);
   const setTool = useEditorStore((state) => state.setTool);
@@ -179,7 +180,13 @@ const EditorShell = () => {
                   role="tab"
                   className={`tab-button ${activeTab === tab.id ? "active" : ""}`}
                   aria-selected={activeTab === tab.id}
-                  onClick={() => setActiveTab(tab.id as TabId)}
+                  onClick={() => {
+                    if (tab.id === "help") {
+                      setShowHelp(true);
+                      return;
+                    }
+                    setActiveTab(tab.id as TabId);
+                  }}
                 >
                   {tab.label}
                 </button>
@@ -432,57 +439,6 @@ const EditorShell = () => {
                 </div>
               )}
 
-              {activeTab === "help" && (
-                <div className="help-panel">
-                  <div className="help-section">
-                    <div className="section-title">Quick tutorial</div>
-                    <ol className="help-list">
-                      <li>Open an image or drop one into the canvas.</li>
-                      <li>Pick Rectangle or Polygon to create zones.</li>
-                      <li>Drag zones to reposition; use Select to move.</li>
-                      <li>Adjust brightness/contrast if needed.</li>
-                      <li>Export zones as individual files or ZIP.</li>
-                    </ol>
-                    <button className="btn small ghost" onClick={() => setShowTutorial(true)}>
-                      Replay tutorial
-                    </button>
-                  </div>
-                  <div className="help-section">
-                    <div className="section-title">FAQ</div>
-                    <div className="help-item">
-                      <strong>Why do my zones look slightly off?</strong>
-                      <div className="hint">
-                        Zoom levels and image scaling can affect precision. Use Select and drag
-                        for fine adjustments.
-                      </div>
-                    </div>
-                    <div className="help-item">
-                      <strong>Can I export everything at once?</strong>
-                      <div className="hint">
-                        Yes. Enable “Download as ZIP” and use Export Zones.
-                      </div>
-                    </div>
-                    <div className="help-item">
-                      <strong>What image formats are supported?</strong>
-                      <div className="hint">
-                        Most common formats work (PNG, JPG, WebP). Large images may take longer.
-                      </div>
-                    </div>
-                  </div>
-                  <div className="help-section">
-                    <div className="section-title">Contact</div>
-                    <div className="hint">Email: support@imagechopper.app</div>
-                    <div className="hint">Feedback: https://imagechopper.app/feedback</div>
-                  </div>
-                  <div className="help-section">
-                    <div className="section-title">Subscription</div>
-                    <div className="hint">
-                      Free: up to 10 zones per image. Pro: unlimited zones + ZIP exports.
-                    </div>
-                    <button className="btn small primary">Upgrade to Pro</button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </main>
@@ -510,6 +466,68 @@ const EditorShell = () => {
               <button className="btn primary" onClick={() => setShowTutorial(false)}>
                 Got it
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showHelp && (
+        <div className="modal-backdrop">
+          <div className="modal modal-scrollable">
+            <div className="modal-header">
+              <div className="modal-title">Help &amp; Resources</div>
+              <button className="btn small ghost" onClick={() => setShowHelp(false)}>
+                Close
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="help-panel">
+                <div className="help-section">
+                  <div className="section-title">Quick tutorial</div>
+                  <ol className="help-list">
+                    <li>Open an image or drop one into the canvas.</li>
+                    <li>Pick Rectangle or Polygon to create zones.</li>
+                    <li>Drag zones to reposition; use Select to move.</li>
+                    <li>Adjust brightness/contrast if needed.</li>
+                    <li>Export zones as individual files or ZIP.</li>
+                  </ol>
+                  <button className="btn small ghost" onClick={() => setShowTutorial(true)}>
+                    Replay tutorial
+                  </button>
+                </div>
+                <div className="help-section">
+                  <div className="section-title">FAQ</div>
+                  <div className="help-item">
+                    <strong>Why do my zones look slightly off?</strong>
+                    <div className="hint">
+                      Zoom levels and image scaling can affect precision. Use Select and drag
+                      for fine adjustments.
+                    </div>
+                  </div>
+                  <div className="help-item">
+                    <strong>Can I export everything at once?</strong>
+                    <div className="hint">Yes. Enable “Download as ZIP” and use Export Zones.</div>
+                  </div>
+                  <div className="help-item">
+                    <strong>What image formats are supported?</strong>
+                    <div className="hint">
+                      Most common formats work (PNG, JPG, WebP). Large images may take longer.
+                    </div>
+                  </div>
+                </div>
+                <div className="help-section">
+                  <div className="section-title">Contact</div>
+                  <div className="hint">Email: support@imagechopper.app</div>
+                  <div className="hint">Feedback: https://imagechopper.app/feedback</div>
+                </div>
+                <div className="help-section">
+                  <div className="section-title">Subscription</div>
+                  <div className="hint">
+                    Free: up to 10 zones per image. Pro: unlimited zones + ZIP exports.
+                  </div>
+                  <button className="btn small primary">Upgrade to Pro</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
