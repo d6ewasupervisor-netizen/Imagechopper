@@ -83,6 +83,7 @@ export class CanvasManager {
       format?: "image/png" | "image/jpeg" | "image/webp";
       quality?: number;
       onProgress?: (completed: number, total: number) => void;
+      shouldCancel?: () => boolean;
     }
   ) {
     if (!this.image || zones.length === 0) return [];
@@ -91,6 +92,9 @@ export class CanvasManager {
     const extension = format.split("/")[1] ?? "png";
     const results: { name: string; blob: Blob }[] = [];
     for (const [index, zone] of zones.entries()) {
+      if (options?.shouldCancel?.()) {
+        throw new Error("Export canceled");
+      }
       const canvas = document.createElement("canvas");
       canvas.width = Math.ceil(zone.width);
       canvas.height = Math.ceil(zone.height);
@@ -149,6 +153,9 @@ export class CanvasManager {
           quality
         );
       });
+      if (options?.shouldCancel?.()) {
+        throw new Error("Export canceled");
+      }
       results.push({
         name: `${baseName}_${String(index + 1).padStart(2, "0")}.${extension}`,
         blob,

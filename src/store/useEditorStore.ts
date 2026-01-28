@@ -31,6 +31,9 @@ interface EditorState {
   isExporting: boolean;
   exportProgress: number;
   exportStatus: string;
+  exportAbort: boolean;
+  zoom: number;
+  pan: { x: number; y: number };
   history: HistorySnapshot[];
   redo: HistorySnapshot[];
   historyLimit: number;
@@ -52,6 +55,10 @@ interface EditorState {
     exportProgress: number;
     exportStatus: string;
   }) => void;
+  setExportAbort: (value: boolean) => void;
+  setZoom: (value: number) => void;
+  setPan: (pan: { x: number; y: number }) => void;
+  resetPan: () => void;
   pushHistory: (label: string) => void;
   undo: () => void;
   redoAction: () => void;
@@ -71,6 +78,9 @@ export const useEditorStore = create<EditorState>((set) => ({
   isExporting: false,
   exportProgress: 0,
   exportStatus: "",
+  exportAbort: false,
+  zoom: 1,
+  pan: { x: 0, y: 0 },
   history: [],
   redo: [],
   historyLimit: 50,
@@ -98,6 +108,10 @@ export const useEditorStore = create<EditorState>((set) => ({
   setExportBaseName: (name) => set({ exportBaseName: name }),
   setExportAsZip: (value) => set({ exportAsZip: value }),
   setExportStatus: (status) => set(status),
+  setExportAbort: (value) => set({ exportAbort: value }),
+  setZoom: (value) => set({ zoom: value }),
+  setPan: (pan) => set({ pan }),
+  resetPan: () => set({ pan: { x: 0, y: 0 } }),
   pushHistory: (label) =>
     set((state) => {
       const snapshot: HistorySnapshot = {

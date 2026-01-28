@@ -10,6 +10,7 @@ import { Point, Zone } from "../types/editor";
 
 interface EditorActions {
   loadImageFromFile: (file: File) => Promise<void>;
+  loadImageFromUrl: (url: string, label?: string) => Promise<void>;
   handlePointerDown: (point: Point) => void;
   handlePointerMove: (point: Point) => void;
   handlePointerUp: (point: Point) => void;
@@ -91,6 +92,26 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           URL.revokeObjectURL(url);
         }
       },
+      loadImageFromUrl: async (url, label = "Sample image") => {
+        const img = new Image();
+        try {
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error("Failed to load image"));
+            img.src = url;
+          });
+          canvasManagerRef.current.setImage(img);
+          useEditorStore.getState().setImageInfo({ width: img.width, height: img.height });
+          useEditorStore.getState().clearZones();
+          useEditorStore.getState().resetAdjustments();
+          useEditorStore.getState().resetHistory();
+          useEditorStore.getState().pushHistory(`Load ${label}`);
+          toast.success(`${label} loaded.`);
+        } catch (error) {
+          toast.error("Could not load the sample image.");
+          throw error;
+        }
+      },
       handlePointerDown: (point) => {
         const tool = getTool();
         if (tool === "rect") toolsRef.current.rect.onPointerDown(point, toolContext);
@@ -120,6 +141,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
         const baseName = useEditorStore.getState().exportBaseName.trim() || "custom";
         const exportAsZip = useEditorStore.getState().exportAsZip;
+        useEditorStore.getState().setExportAbort(false);
         useEditorStore
           .getState()
           .setExportStatus({ isExporting: true, exportProgress: 0, exportStatus: "Preparing" });
@@ -132,6 +154,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 exportStatus: `Exporting ${completed}/${total}`,
               });
             },
+            shouldCancel: () => useEditorStore.getState().exportAbort,
           });
           if (exportAsZip) {
             const zip = new JSZip();
@@ -143,13 +166,18 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           }
           toast.success("Export complete.");
         } catch (error) {
-          toast.error("Export failed. Please try again.");
+          if (error instanceof Error && error.message === "Export canceled") {
+            toast.message("Export canceled.");
+          } else {
+            toast.error("Export failed. Please try again.");
+          }
         } finally {
           useEditorStore.getState().setExportStatus({
             isExporting: false,
             exportProgress: 0,
             exportStatus: "",
           });
+          useEditorStore.getState().setExportAbort(false);
         }
       },
       applyTemplate: (templateId) => {
