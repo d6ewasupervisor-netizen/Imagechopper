@@ -343,6 +343,7 @@ select:focus-visible {
   place-items: center;
   transform-origin: center;
   transition: transform 0.1s ease;
+  z-index: 1;
 }
 
 .canvas-viewport.pan-ready {
@@ -385,6 +386,7 @@ select:focus-visible {
   font-size: 0.9rem;
   text-align: center;
   padding: 20px;
+  z-index: 2;
 }
 
 .drop-overlay-content {

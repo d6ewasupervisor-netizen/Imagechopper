@@ -240,7 +240,14 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
               <div>Drag & drop an image here</div>
               <div className="hint">Supported: PNG, JPG, WebP</div>
               <div className="hint">or</div>
-              <button className="btn primary" onClick={onOpenImage}>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpenImage();
+                }}
+              >
                 Open Image
               </button>
             </div>
