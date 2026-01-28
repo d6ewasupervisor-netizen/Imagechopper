@@ -26,6 +26,7 @@ interface EditorState {
   imageInfo: ImageInfo | null;
   canvasMetrics: CanvasMetrics | null;
   adjustments: AdjustmentSettings;
+  exportBaseName: string;
   history: HistorySnapshot[];
   redo: HistorySnapshot[];
   historyLimit: number;
@@ -40,6 +41,7 @@ interface EditorState {
   setAdjustment: (key: keyof AdjustmentSettings, value: number) => void;
   resetAdjustments: () => void;
   clearZones: () => void;
+  setExportBaseName: (name: string) => void;
   pushHistory: (label: string) => void;
   undo: () => void;
   redoAction: () => void;
@@ -54,6 +56,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   imageInfo: null,
   canvasMetrics: null,
   adjustments: { brightness: 0, contrast: 0, saturation: 0, blur: 0 },
+  exportBaseName: "custom",
   history: [],
   redo: [],
   historyLimit: 50,
@@ -78,6 +81,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   resetAdjustments: () =>
     set({ adjustments: { brightness: 0, contrast: 0, saturation: 0, blur: 0 } }),
   clearZones: () => set({ zones: [], selectedZoneIds: [], drawing: null }),
+  setExportBaseName: (name) => set({ exportBaseName: name }),
   pushHistory: (label) =>
     set((state) => {
       const snapshot: HistorySnapshot = {

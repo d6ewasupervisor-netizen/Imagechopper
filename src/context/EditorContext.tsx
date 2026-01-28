@@ -92,7 +92,8 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       },
       exportZones: () => {
         const zones = useEditorStore.getState().zones;
-        const exports = canvasManagerRef.current.exportZones(zones);
+        const baseName = useEditorStore.getState().exportBaseName.trim() || "custom";
+        const exports = canvasManagerRef.current.exportZones(zones, baseName);
         exports.forEach((item) => {
           const link = document.createElement("a");
           link.download = item.name;
@@ -150,21 +151,24 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             height: height - shortH,
           });
         }
-        if (templateId === "product-tiles") {
-          const cols = 2;
-          const rows = 3;
-          const tileW = width / cols;
-          const tileH = height / rows;
-          for (let row = 0; row < rows; row += 1) {
-            for (let col = 0; col < cols; col += 1) {
-              zones.push({
-                id: crypto.randomUUID(),
-                type: "rect",
-                x: col * tileW,
-                y: row * tileH,
-                width: tileW,
-                height: tileH,
-              });
+        const gridMatch = templateId.match(/^grid-(\d+)x(\d+)$/);
+        if (gridMatch) {
+          const cols = Number(gridMatch[1]);
+          const rows = Number(gridMatch[2]);
+          if (cols > 0 && rows > 0) {
+            const tileW = width / cols;
+            const tileH = height / rows;
+            for (let row = 0; row < rows; row += 1) {
+              for (let col = 0; col < cols; col += 1) {
+                zones.push({
+                  id: crypto.randomUUID(),
+                  type: "rect",
+                  x: col * tileW,
+                  y: row * tileH,
+                  width: tileW,
+                  height: tileH,
+                });
+              }
             }
           }
         }

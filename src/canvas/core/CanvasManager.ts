@@ -73,7 +73,7 @@ export class CanvasManager {
     };
   }
 
-  exportZones(zones: Zone[]) {
+  exportZones(zones: Zone[], baseName: string) {
     if (!this.image || zones.length === 0) return [];
     return zones.map((zone, index) => {
       const canvas = document.createElement("canvas");
@@ -120,7 +120,7 @@ export class CanvasManager {
       }
       ctx.filter = "none";
       return {
-        name: `zone_${String(index + 1).padStart(2, "0")}.png`,
+        name: `${baseName}_${String(index + 1).padStart(2, "0")}.png`,
         dataUrl: canvas.toDataURL("image/png"),
       };
     }).filter(Boolean) as { name: string; dataUrl: string }[];
