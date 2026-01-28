@@ -222,6 +222,23 @@ const EditorShell = () => {
           </button>
         </div>
       </header>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={async (event) => {
+          const file = event.target.files?.[0];
+          if (file) {
+            try {
+              await actions.loadImageFromFile(file);
+            } catch {
+              // handled via toast
+            }
+          }
+          event.target.value = "";
+        }}
+      />
 
       <div className="tool-bar">
         <div className="tool-bar-section">
@@ -589,23 +606,6 @@ const EditorShell = () => {
                   <button className="tab-action" onClick={handleOpen}>
                     Open Image
                   </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={async (event) => {
-                      const file = event.target.files?.[0];
-                      if (file) {
-                        try {
-                          await actions.loadImageFromFile(file);
-                        } catch {
-                          // handled via toast
-                        }
-                      }
-                      event.target.value = "";
-                    }}
-                  />
                 </div>
               )}
 
