@@ -317,6 +317,13 @@ button {
   padding: 20px;
 }
 
+.drop-overlay-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
 .statusbar {
   display: flex;
   justify-content: space-between;
@@ -459,6 +466,79 @@ button {
   height: 100%;
   background: linear-gradient(135deg, #34d399, #60a5fa);
   transition: width 0.2s ease;
+}
+
+.help-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.help-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-2);
+}
+
+.help-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+.help-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 18px;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.7);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+}
+
+.modal {
+  width: min(520px, 90vw);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.6);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-title {
+  font-weight: 600;
+}
+
+.modal-body {
+  color: var(--text);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .adjustments-grid {

@@ -29,7 +29,7 @@ const computeBounds = (points: Point[]) => {
   };
 };
 
-const CanvasWorkspace = () => {
+const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
   const { canvasManager, actions } = useEditor();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -165,7 +165,15 @@ const CanvasWorkspace = () => {
         }}
       >
         {!imageInfo && (
-          <div className="drop-overlay">Drag & drop an image, or click Open to start.</div>
+          <div className="drop-overlay">
+            <div className="drop-overlay-content">
+              <div>Drag & drop an image here</div>
+              <div className="hint">or</div>
+              <button className="btn primary" onClick={onOpenImage}>
+                Open Image
+              </button>
+            </div>
+          </div>
         )}
         <canvas ref={canvasRef} className="preview-canvas" />
         <div className={`konva-overlay ${imageInfo ? "active" : ""}`}>
