@@ -210,7 +210,7 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
           </span>
         </div>
         <div className="toolbar-right">
-          <span className="hint">{zones.length} zones</span>
+          <span className="hint">{tool.toUpperCase()} tool</span>
         </div>
       </div>
       <div
@@ -238,6 +238,7 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
           <div className="drop-overlay">
             <div className="drop-overlay-content">
               <div>Drag & drop an image here</div>
+              <div className="hint">Supported: PNG, JPG, WebP</div>
               <div className="hint">or</div>
               <button className="btn primary" onClick={onOpenImage}>
                 Open Image
@@ -384,8 +385,12 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
         </div>
       </div>
       <div className="statusbar">
-        <span>{imageInfo ? "Canvas ready" : "Waiting for image"}</span>
-        <span>{zones.length} zones</span>
+        <span>
+          {imageInfo ? "Canvas ready" : "Waiting for image"} · Zoom {Math.round(zoom * 100)}%
+        </span>
+        <span>
+          Zones {zones.length} · Selected {selectedZoneIds.length}
+        </span>
       </div>
     </>
   );

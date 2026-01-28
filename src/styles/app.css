@@ -29,6 +29,14 @@ button {
   font-family: inherit;
 }
 
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgba(96, 165, 250, 0.8);
+  outline-offset: 2px;
+}
+
 .app {
   display: grid;
   grid-template-rows: auto auto 1fr;
@@ -384,11 +392,15 @@ button {
   flex-direction: column;
   gap: 12px;
   align-items: center;
+  max-width: 360px;
 }
 
 .statusbar {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   padding: 10px 16px;
   border-top: 1px solid var(--border);
   font-size: 0.75rem;
@@ -451,6 +463,16 @@ button {
   display: block;
   max-height: 190px;
   overflow: auto;
+}
+
+.tab-panel::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.tab-panel::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
 }
 
 .tab-content-grid {

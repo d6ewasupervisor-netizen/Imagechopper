@@ -76,6 +76,8 @@ const EditorShell = () => {
   };
 
   const zoomPercent = Math.round(zoom * 100);
+  const selectedCount = selectedZoneIds.length;
+  const outputCountLabel = `${zones.length} outputs · Format: PNG`;
   const adjustZoom = (delta: number) => {
     const next = Math.min(4, Math.max(0.25, Math.round((zoom + delta) * 100) / 100));
     setZoom(next);
@@ -413,6 +415,7 @@ const EditorShell = () => {
 
               {activeTab === "adjustments" && (
                 <div className="adjustments-grid">
+                  <div className="hint">Adjustments apply to preview and exports.</div>
                   {([
                     { key: "brightness", label: "Brightness", min: -50, max: 50 },
                     { key: "contrast", label: "Contrast", min: -50, max: 50 },
@@ -449,6 +452,11 @@ const EditorShell = () => {
 
               {activeTab === "zones" && (
                 <div className="zones-panel">
+                  <div className="hint">
+                    {selectedCount > 0
+                      ? `${selectedCount} selected · ${zones.length} total`
+                      : `${zones.length} total zones`}
+                  </div>
                   {selectedZone && (
                     <div className="zone-inspector">
                       <div className="section-title">Selected zone</div>
@@ -545,7 +553,7 @@ const EditorShell = () => {
 
               {activeTab === "export" && (
                 <div className="tab-content-grid">
-                  <div className="hint">{zones.length} outputs · Format: PNG</div>
+                  <div className="hint">{outputCountLabel}</div>
                   <label className="menu-label" htmlFor="exportBaseName">
                     Base filename
                   </label>
@@ -565,6 +573,7 @@ const EditorShell = () => {
                   >
                     {isExporting ? "Exporting..." : "Export Zones"}
                   </button>
+                  <div className="hint">Shortcut: Ctrl/Cmd + E</div>
                   {isExporting && (
                     <button className="tab-action danger" onClick={() => setExportAbort(true)}>
                       Cancel Export
