@@ -42,6 +42,7 @@ export class CanvasManager {
     const maxWidth = Math.max(0, viewportWidth - padding);
     const maxHeight = Math.max(0, viewportHeight - padding);
     if (maxWidth === 0 || maxHeight === 0) return this.metrics;
+    const dpr = window.devicePixelRatio || 1;
     const scale = Math.min(
       maxWidth / this.image.width,
       maxHeight / this.image.height,
@@ -51,12 +52,15 @@ export class CanvasManager {
     const displayWidth = Math.round(this.image.width * scale);
     const displayHeight = Math.round(this.image.height * scale);
 
-    this.canvas.width = displayWidth;
-    this.canvas.height = displayHeight;
+    this.canvas.width = Math.round(displayWidth * dpr);
+    this.canvas.height = Math.round(displayHeight * dpr);
     this.canvas.style.width = `${displayWidth}px`;
     this.canvas.style.height = `${displayHeight}px`;
 
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.ctx.clearRect(0, 0, displayWidth, displayHeight);
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = "high";
     this.ctx.filter = this.getFilterString();
     this.ctx.drawImage(this.image, 0, 0, displayWidth, displayHeight);
     this.ctx.filter = "none";
