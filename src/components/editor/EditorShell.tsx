@@ -990,6 +990,85 @@ const EditorShell = () => {
                   </div>
                 </div>
                 <div className="help-section">
+                  <div className="section-title">CSS cropping recipes</div>
+                  <div className="help-item">
+                    <strong>Overflow crop</strong>
+                    <div className="hint">
+                      Wrap an image in a fixed-size container and use <code>overflow: hidden</code> to
+                      clip it.
+                    </div>
+                    <div className="hint">
+                      <code>{".wrap { width: 400px; height: 400px; overflow: hidden; }"}</code>
+                    </div>
+                  </div>
+                  <div className="help-item">
+                    <strong>Object-fit crop</strong>
+                    <div className="hint">
+                      Use <code>object-fit: cover</code> with <code>object-position</code> to focus the
+                      crop.
+                    </div>
+                    <div className="hint">
+                      <code>{".cropped { width: 150px; height: 150px; object-fit: cover; object-position: 25% 25%; }"}</code>
+                    </div>
+                  </div>
+                  <div className="help-item">
+                    <strong>Aspect ratio crop</strong>
+                    <div className="hint">
+                      Use <code>padding-top</code> + <code>calc()</code> to lock aspect ratio, then
+                      cover the box.
+                    </div>
+                    <div className="hint">
+                      <code>{".image-box { height: 0; padding-top: calc(100% * (100 / 300)); position: relative; }"}</code>
+                    </div>
+                  </div>
+                  <div className="help-item">
+                    <strong>Transform crop</strong>
+                    <div className="hint">
+                      Combine <code>transform: scale()</code> + <code>translate()</code> for precise
+                      framing.
+                    </div>
+                    <div className="hint">
+                      <code>{".image { object-fit: cover; transform: scale(0.5) translate(0, 5%); }"}</code>
+                    </div>
+                  </div>
+                  <div className="help-item">
+                    <strong>Clip-path crop</strong>
+                    <div className="hint">
+                      Use <code>clip-path</code> for custom shapes (rectangle, circle, polygon).
+                    </div>
+                    <div className="hint">
+                      <code>{".clip { clip-path: inset(20px 50px 10px 0 round 50px); }"}</code>
+                    </div>
+                  </div>
+                </div>
+                <div className="help-section">
+                  <div className="section-title">CSS crop tips</div>
+                  <div className="help-item">
+                    <strong>Responsive containers</strong>
+                    <div className="hint">
+                      Prefer <code>object-fit: cover</code> for centered responsive crops.
+                    </div>
+                  </div>
+                  <div className="help-item">
+                    <strong>Fine-tune with margins</strong>
+                    <div className="hint">
+                      When using <code>overflow: hidden</code>, use negative margins to shift focus.
+                    </div>
+                  </div>
+                  <div className="help-item">
+                    <strong>Fallback styles</strong>
+                    <div className="hint">
+                      Pair modern methods with <code>overflow</code> fallbacks for older browsers.
+                    </div>
+                  </div>
+                  <div className="help-item">
+                    <strong>Performance</strong>
+                    <div className="hint">
+                      CSS crops do not reduce file size. Pre-crop on the server when possible.
+                    </div>
+                  </div>
+                </div>
+                <div className="help-section">
                   <div className="section-title">Contact</div>
                   <div className="hint">Email: support@imagechopper.app</div>
                   <div className="hint">Feedback: https://imagechopper.app/feedback</div>
