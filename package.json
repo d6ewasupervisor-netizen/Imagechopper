@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0 --port 4173",
-    "start": "serve -s dist -l tcp://0.0.0.0:${PORT:-3000}"
+    "start": "node server.mjs",
+    "start:static": "serve -s dist -l tcp://0.0.0.0:${PORT:-3000}"
   },
   "dependencies": {
+    "express": "^4.22.2",
     "jszip": "^3.10.1",
     "konva": "^9.3.7",
     "react": "^18.2.0",

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import LoginModal from "../auth/LoginModal";
 import CanvasWorkspace from "./CanvasWorkspace";
 import { useEditor } from "../../context/EditorContext";
+import { logoutSession } from "../../lib/auth";
 import {
   selectCanRedo,
   selectCanUndo,
@@ -23,6 +25,7 @@ const EditorShell = () => {
   const [showTutorial, setShowTutorial] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const projectInputRef = useRef<HTMLInputElement | null>(null);
   const tool = useEditorStore((state) => state.tool);
@@ -44,8 +47,9 @@ const EditorShell = () => {
   const exportStatus = useEditorStore((state) => state.exportStatus);
   const setExportAbort = useEditorStore((state) => state.setExportAbort);
   const isPro = useEditorStore((state) => state.isPro);
+  const userEmail = useEditorStore((state) => state.userEmail);
   const maxFreeZones = useEditorStore((state) => state.maxFreeZones);
-  const setIsPro = useEditorStore((state) => state.setIsPro);
+  const clearAuthSession = useEditorStore((state) => state.clearAuthSession);
   const adjustments = useEditorStore((state) => state.adjustments);
   const setAdjustment = useEditorStore((state) => state.setAdjustment);
   const resetAdjustments = useEditorStore((state) => state.resetAdjustments);
@@ -142,7 +146,13 @@ const EditorShell = () => {
   const planLabel = isPro ? "Pro" : "Free";
 
   const handleUpgrade = () => {
-    toast.message("Upgrade flow coming soon.");
+    setShowLogin(true);
+  };
+
+  const handleSignOut = async () => {
+    await logoutSession();
+    clearAuthSession();
+    toast.message("Signed out.");
   };
 
   const handleProjectOpen = () => {
@@ -332,9 +342,19 @@ const EditorShell = () => {
           >
             ?
           </button>
-          <div className="plan-pill" title="Current plan">
+          <div className="plan-pill" title={userEmail || "Current plan"}>
             {planLabel}
+            {userEmail ? ` · ${userEmail}` : ""}
           </div>
+          {userEmail ? (
+            <button className="btn ghost" onClick={handleSignOut} title="Sign out">
+              Sign out
+            </button>
+          ) : (
+            <button className="btn ghost" onClick={() => setShowLogin(true)} title="Sign in">
+              Sign in
+            </button>
+          )}
           {!isPro && (
             <button className="btn primary" onClick={handleUpgrade} title="Upgrade">
               Upgrade
@@ -1086,11 +1106,13 @@ const EditorShell = () => {
                     unlimited zones, JPEG/WebP, ZIP exports, metadata + project files, and no ads.
                   </div>
                   <button className="btn small primary" onClick={handleUpgrade}>
-                    Upgrade to Pro
+                    {isPro ? "Manage Pro" : "Upgrade to Pro"}
                   </button>
-                  <button className="btn small ghost" onClick={() => setIsPro(!isPro)}>
-                    Toggle Pro (preview)
-                  </button>
+                  {!userEmail && (
+                    <button className="btn small ghost" onClick={() => setShowLogin(true)}>
+                      Sign in
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1144,6 +1166,8 @@ const EditorShell = () => {
           </div>
         </div>
       )}
+
+      <LoginModal open={showLogin} onClose={() => setShowLogin(false)} />
     </div>
   );
 };

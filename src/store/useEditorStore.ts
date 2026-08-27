@@ -37,6 +37,8 @@ interface EditorState {
   exportStatus: string;
   exportAbort: boolean;
   isPro: boolean;
+  userEmail: string | null;
+  authReady: boolean;
   maxFreeZones: number;
   zoom: number;
   pan: { x: number; y: number };
@@ -67,6 +69,9 @@ interface EditorState {
   }) => void;
   setExportAbort: (value: boolean) => void;
   setIsPro: (value: boolean) => void;
+  setAuthSession: (email: string | null, isPro: boolean) => void;
+  setAuthReady: (ready: boolean) => void;
+  clearAuthSession: () => void;
   setZoom: (value: number) => void;
   setPan: (pan: { x: number; y: number }) => void;
   resetPan: () => void;
@@ -95,6 +100,8 @@ export const useEditorStore = create<EditorState>((set) => ({
   exportStatus: "",
   exportAbort: false,
   isPro: false,
+  userEmail: null,
+  authReady: false,
   maxFreeZones: 10,
   zoom: 1,
   pan: { x: 0, y: 0 },
@@ -131,6 +138,9 @@ export const useEditorStore = create<EditorState>((set) => ({
   setExportStatus: (status) => set(status),
   setExportAbort: (value) => set({ exportAbort: value }),
   setIsPro: (value) => set({ isPro: value }),
+  setAuthSession: (email, isPro) => set({ userEmail: email, isPro }),
+  setAuthReady: (ready) => set({ authReady: ready }),
+  clearAuthSession: () => set({ userEmail: null, isPro: false }),
   setZoom: (value) => set({ zoom: value }),
   setPan: (pan) => set({ pan }),
   resetPan: () => set({ pan: { x: 0, y: 0 } }),
