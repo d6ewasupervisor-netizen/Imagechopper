@@ -1202,7 +1202,8 @@ const EditorShell = () => {
                   <div className="help-item">Cancel drawing: Esc</div>
                   <div className="help-item">Nudge selection: Arrow keys (Shift = 10px)</div>
                   <div className="help-item">Multi-select: Shift + click zones</div>
-                  <div className="help-item">Marquee select: drag on empty canvas</div>
+                  <div className="help-item">Resize: drag selection anchors</div>
+                  <div className="help-item">Multi-resize: anchors resize all selected</div>
                   <div className="help-item">Duplicate drag: Ctrl/Cmd + drag zone</div>
                   <div className="help-item">Copy / Paste: Ctrl/Cmd + C / V or right-click</div>
                 </div>

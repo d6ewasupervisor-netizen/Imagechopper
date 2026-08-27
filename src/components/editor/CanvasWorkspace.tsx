@@ -1,15 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { Ellipse, Layer, Line, Rect, Stage } from "react-konva";
 import Konva from "konva";
 import { toast } from "sonner";
 import { useEditor } from "../../context/EditorContext";
 import {
+  Bounds,
+  HANDLE_CURSORS,
+  ResizeHandle,
   clampZoneToImage,
   cloneZones,
+  handlePositions,
   normalizeClientBox,
   rectsIntersect,
+  resizeBoundsByHandle,
+  scaleZonesFromHandle,
   selectionBounds,
+  transformZonesAcrossBounds,
   translateZone,
 } from "../../lib/zoneOps";
 import {
@@ -57,6 +64,15 @@ type DragSession = {
   nodeStart: { x: number; y: number };
 };
 
+type ResizeSession = {
+  mode: "group" | "item";
+  handle: ResizeHandle;
+  ids: string[];
+  primaryId: string;
+  startById: Record<string, Zone>;
+  startBounds: Bounds;
+};
+
 type ContextMenuState = {
   clientX: number;
   clientY: number;
@@ -77,12 +93,15 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
   const dragSessionRef = useRef<DragSession | null>(null);
+  const resizeSessionRef = useRef<ResizeSession | null>(null);
+  const resizePreviewRef = useRef<Record<string, Zone> | null>(null);
   const liveDeltaRef = useRef({ x: 0, y: 0 });
   const marqueeRef = useRef<MarqueeSession | null>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [spacePressed, setSpacePressed] = useState(false);
   const [liveDelta, setLiveDelta] = useState({ x: 0, y: 0 });
+  const [resizePreview, setResizePreview] = useState<Record<string, Zone> | null>(null);
   const [marqueeBox, setMarqueeBox] = useState<{
     left: number;
     top: number;
@@ -210,6 +229,13 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
     const session = dragSessionRef.current;
     if (!session || !session.movingIds.includes(zoneId)) return { x: 0, y: 0 };
     return liveDelta;
+  };
+
+  const getDisplayZone = (zone: Zone): Zone => {
+    if (resizePreview?.[zone.id]) return resizePreview[zone.id];
+    const offset = getZoneOffset(zone.id);
+    if (offset.x === 0 && offset.y === 0) return zone;
+    return translateZone(zone, offset.x, offset.y);
   };
 
   const ensureCanAddZones = (count: number) => {
@@ -471,19 +497,115 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
     pushHistory(session.mode === "duplicate" ? "Duplicate zones" : "Move zones");
   };
 
+  const beginResize = (
+    handle: ResizeHandle,
+    mode: "group" | "item",
+    primary: Zone,
+    event: Konva.KonvaEventObject<MouseEvent>
+  ) => {
+    event.cancelBubble = true;
+    event.evt.preventDefault();
+    event.evt.stopPropagation();
+    if (tool !== "select" || !imageInfo) return;
+
+    let ids = selectedZoneIds.includes(primary.id) ? [...selectedZoneIds] : [primary.id];
+    if (!selectedZoneIds.includes(primary.id)) {
+      setSelectedZoneIds([primary.id]);
+      ids = [primary.id];
+    }
+    const startZones = zones.filter((zone) => ids.includes(zone.id));
+    const startById = Object.fromEntries(startZones.map((zone) => [zone.id, zone]));
+    const startBounds =
+      mode === "group"
+        ? selectionBounds(startZones) ?? {
+            x: primary.x,
+            y: primary.y,
+            width: primary.width,
+            height: primary.height,
+          }
+        : { x: primary.x, y: primary.y, width: primary.width, height: primary.height };
+
+    resizeSessionRef.current = {
+      mode,
+      handle,
+      ids,
+      primaryId: primary.id,
+      startById,
+      startBounds,
+    };
+    resizePreviewRef.current = null;
+    setResizePreview(null);
+
+    const handleMove = () => updateResizeFromPointer();
+    const handleUp = () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+      finishResize();
+    };
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+  };
+
+  const updateResizeFromPointer = () => {
+    const session = resizeSessionRef.current;
+    const stage = stageRef.current;
+    if (!session || !stage || !metrics || !imageInfo) return;
+    const pointer = toImagePoint(stage.getPointerPosition(), metrics);
+    if (!pointer) return;
+
+    const starts = session.ids
+      .map((id) => session.startById[id])
+      .filter(Boolean) as Zone[];
+
+    let nextZones: Zone[] = [];
+    if (session.mode === "group") {
+      const toBounds = resizeBoundsByHandle(session.startBounds, session.handle, pointer);
+      nextZones = transformZonesAcrossBounds(starts, session.startBounds, toBounds).map(
+        (zone) => clampZoneToImage(zone, imageInfo.width, imageInfo.height)
+      );
+    } else {
+      const primary = session.startById[session.primaryId];
+      if (!primary || primary.width <= 0 || primary.height <= 0) return;
+      const resizedPrimary = resizeBoundsByHandle(primary, session.handle, pointer);
+      const sx = resizedPrimary.width / primary.width;
+      const sy = resizedPrimary.height / primary.height;
+      nextZones = scaleZonesFromHandle(starts, session.handle, sx, sy).map((zone) =>
+        clampZoneToImage(zone, imageInfo.width, imageInfo.height)
+      );
+    }
+
+    const preview = Object.fromEntries(nextZones.map((zone) => [zone.id, zone]));
+    resizePreviewRef.current = preview;
+    setResizePreview(preview);
+  };
+
+  const finishResize = () => {
+    const session = resizeSessionRef.current;
+    if (!session) {
+      resizePreviewRef.current = null;
+      setResizePreview(null);
+      return;
+    }
+    const preview = resizePreviewRef.current;
+    resizeSessionRef.current = null;
+    resizePreviewRef.current = null;
+    if (!preview) {
+      setResizePreview(null);
+      return;
+    }
+    const currentZones = useEditorStore.getState().zones;
+    const nextZones = currentZones.map((zone) => preview[zone.id] ?? zone);
+    setZones(nextZones);
+    setResizePreview(null);
+    pushHistory(session.ids.length > 1 ? "Resize zones" : "Resize zone");
+  };
+
   const selectedZones = useMemo(
-    () => zones.filter((zone) => selectedZoneIds.includes(zone.id)),
-    [zones, selectedZoneIds]
+    () => zones.filter((zone) => selectedZoneIds.includes(zone.id)).map(getDisplayZone),
+    [zones, selectedZoneIds, liveDelta, resizePreview]
   );
 
-  const multiBounds = useMemo(() => {
-    if (selectedZones.length < 2) return null;
-    const offsetZones = selectedZones.map((zone) => {
-      const offset = getZoneOffset(zone.id);
-      return translateZone(zone, offset.x, offset.y);
-    });
-    return selectionBounds(offsetZones);
-  }, [selectedZones, liveDelta]);
+  const selectionBox = useMemo(() => selectionBounds(selectedZones), [selectedZones]);
 
   const handlePanStart = (event: ReactMouseEvent<HTMLDivElement>) => {
     const isMiddleClick = event.button === 1;
@@ -528,15 +650,15 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
 
   const renderZoneShape = (zone: Zone) => {
     if (!metrics) return null;
+    const display = getDisplayZone(zone);
     const isSelected = selectedZoneIds.includes(zone.id);
     const strokeColor = zone.color ?? "#94a3b8";
     const fillColor = hexToRgba(strokeColor, isSelected ? 0.22 : 0.16);
-    const offset = getZoneOffset(zone.id);
     const common = {
       stroke: strokeColor,
       strokeWidth: isSelected ? 3 : 2,
       fill: fillColor,
-      draggable: tool === "select",
+      draggable: tool === "select" && !resizeSessionRef.current,
       onDragStart: (event: Konva.KonvaEventObject<DragEvent>) => handleDragStart(zone, event),
       onDragMove: handleDragMove,
       onDragEnd: handleDragEnd,
@@ -547,26 +669,26 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
         handleZoneContextMenu(zone.id, event),
     };
 
-    if (zone.type === "rect") {
+    if (display.type === "rect") {
       return (
         <Rect
           key={zone.id}
-          x={(zone.x + offset.x) * metrics.scale}
-          y={(zone.y + offset.y) * metrics.scale}
-          width={zone.width * metrics.scale}
-          height={zone.height * metrics.scale}
+          x={display.x * metrics.scale}
+          y={display.y * metrics.scale}
+          width={display.width * metrics.scale}
+          height={display.height * metrics.scale}
           {...common}
         />
       );
     }
-    if (zone.type === "ellipse") {
+    if (display.type === "ellipse") {
       return (
         <Ellipse
           key={zone.id}
-          x={(zone.x + zone.width / 2 + offset.x) * metrics.scale}
-          y={(zone.y + zone.height / 2 + offset.y) * metrics.scale}
-          radiusX={(zone.width * metrics.scale) / 2}
-          radiusY={(zone.height * metrics.scale) / 2}
+          x={(display.x + display.width / 2) * metrics.scale}
+          y={(display.y + display.height / 2) * metrics.scale}
+          radiusX={(display.width * metrics.scale) / 2}
+          radiusY={(display.height * metrics.scale) / 2}
           {...common}
         />
       );
@@ -574,14 +696,52 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
     return (
       <Line
         key={zone.id}
-        points={zone.points.flatMap((point) => [
-          (point.x + offset.x) * metrics.scale,
-          (point.y + offset.y) * metrics.scale,
+        points={display.points.flatMap((point) => [
+          point.x * metrics.scale,
+          point.y * metrics.scale,
         ])}
         closed
         {...common}
       />
     );
+  };
+
+  const renderHandlesForBounds = (
+    bounds: Bounds,
+    keyPrefix: string,
+    mode: "group" | "item",
+    primary: Zone,
+    handles: ResizeHandle[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"],
+    size = 9
+  ) => {
+    if (!metrics || tool !== "select") return null;
+    const positions = handlePositions(bounds);
+    return handles.map((handle) => {
+      const point = positions[handle];
+      return (
+        <Rect
+          key={`${keyPrefix}-${handle}`}
+          x={point.x * metrics.scale - size / 2}
+          y={point.y * metrics.scale - size / 2}
+          width={size}
+          height={size}
+          fill="#f8fafc"
+          stroke="#60a5fa"
+          strokeWidth={1.5}
+          cornerRadius={2}
+          onMouseEnter={(event) => {
+            const container = event.target.getStage()?.container();
+            if (container) container.style.cursor = HANDLE_CURSORS[handle];
+          }}
+          onMouseLeave={(event) => {
+            if (resizeSessionRef.current) return;
+            const container = event.target.getStage()?.container();
+            if (container) container.style.cursor = "default";
+          }}
+          onMouseDown={(event) => beginResize(handle, mode, primary, event)}
+        />
+      );
+    });
   };
 
   return (
@@ -692,62 +852,47 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
                 <Layer>
                   {zones.map((zone) => renderZoneShape(zone))}
 
-                  {multiBounds && metrics && (
-                    <Rect
-                      x={multiBounds.x * metrics.scale}
-                      y={multiBounds.y * metrics.scale}
-                      width={multiBounds.width * metrics.scale}
-                      height={multiBounds.height * metrics.scale}
-                      stroke="rgba(96, 165, 250, 0.85)"
-                      strokeWidth={1}
-                      dash={[5, 4]}
-                      listening={false}
-                    />
+                  {selectionBox && metrics && selectedZones.length > 0 && (
+                    <>
+                      <Rect
+                        x={selectionBox.x * metrics.scale}
+                        y={selectionBox.y * metrics.scale}
+                        width={selectionBox.width * metrics.scale}
+                        height={selectionBox.height * metrics.scale}
+                        stroke="rgba(96, 165, 250, 0.9)"
+                        strokeWidth={1}
+                        dash={[5, 4]}
+                        listening={false}
+                      />
+                      {renderHandlesForBounds(
+                        selectionBox,
+                        "group",
+                        "group",
+                        selectedZones[0],
+                        ["nw", "n", "ne", "e", "se", "s", "sw", "w"],
+                        10
+                      )}
+                    </>
                   )}
 
-                  {selectedZones.length === 1 && metrics && (() => {
-                    const selectedZone = selectedZones[0];
-                    const offset = getZoneOffset(selectedZone.id);
-                    return (
-                      <>
-                        <Rect
-                          x={(selectedZone.x + offset.x) * metrics.scale}
-                          y={(selectedZone.y + offset.y) * metrics.scale}
-                          width={selectedZone.width * metrics.scale}
-                          height={selectedZone.height * metrics.scale}
-                          stroke={hexToRgba(selectedZone.color ?? "#60a5fa", 0.7)}
-                          strokeWidth={1}
-                          dash={[4, 4]}
-                          listening={false}
-                        />
-                        {[0, 1, 2, 3].map((idx) => {
-                          const size = 8;
-                          const x =
-                            selectedZone.x +
-                            offset.x +
-                            (idx === 1 || idx === 2 ? selectedZone.width : 0);
-                          const y =
-                            selectedZone.y +
-                            offset.y +
-                            (idx === 2 || idx === 3 ? selectedZone.height : 0);
-                          return (
-                            <Rect
-                              key={`handle-${idx}`}
-                              x={x * metrics.scale - size / 2}
-                              y={y * metrics.scale - size / 2}
-                              width={size}
-                              height={size}
-                              fill="#e2e8f0"
-                              stroke="#60a5fa"
-                              strokeWidth={1}
-                              cornerRadius={2}
-                              listening={false}
-                            />
-                          );
-                        })}
-                      </>
-                    );
-                  })()}
+                  {selectedZones.length > 1 &&
+                    selectedZones.map((zone) => (
+                      <Fragment key={`item-handles-${zone.id}`}>
+                        {renderHandlesForBounds(
+                          {
+                            x: zone.x,
+                            y: zone.y,
+                            width: zone.width,
+                            height: zone.height,
+                          },
+                          `item-${zone.id}`,
+                          "item",
+                          zone,
+                          ["nw", "ne", "se", "sw"],
+                          7
+                        )}
+                      </Fragment>
+                    ))}
 
                   {drawing?.type === "rect" && (
                     <Rect
