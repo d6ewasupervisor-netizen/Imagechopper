@@ -89,7 +89,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   exportFormat: "image/png",
   exportQuality: 0.9,
   exportNamePattern: "{base}_{index}",
-  exportAsZip: true,
+  exportAsZip: false,
   isExporting: false,
   exportProgress: 0,
   exportStatus: "",

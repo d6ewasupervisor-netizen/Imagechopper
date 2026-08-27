@@ -313,9 +313,10 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const baseName = useEditorStore.getState().exportBaseName.trim() || "custom";
         const { exportAsZip, isPro, exportFormat, exportQuality, exportNamePattern } =
           useEditorStore.getState();
+        // For free users, disable ZIP export and proceed with individual downloads
+        const shouldExportAsZip = exportAsZip && isPro;
         if (exportAsZip && !isPro) {
-          toast.message("ZIP export is available on Pro.");
-          return;
+          toast.message("ZIP export is available on Pro. Exporting as individual files.");
         }
         if (!isPro && exportFormat !== "image/png") {
           toast.message("JPEG/WebP exports are available on Pro.");
@@ -340,7 +341,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             },
             shouldCancel: () => useEditorStore.getState().exportAbort,
           });
-          if (exportAsZip) {
+          if (shouldExportAsZip) {
             const zip = new JSZip();
             exports.forEach((item) => zip.file(item.name, item.blob));
             const blob = await zip.generateAsync({ type: "blob" });

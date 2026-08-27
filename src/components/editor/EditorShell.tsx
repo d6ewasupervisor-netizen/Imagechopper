@@ -302,6 +302,12 @@ const EditorShell = () => {
     }
   }, [isPro, exportFormat, setExportFormat]);
 
+  useEffect(() => {
+    if (!isPro && exportAsZip) {
+      setExportAsZip(false);
+    }
+  }, [isPro, exportAsZip, setExportAsZip]);
+
   return (
     <div className="app">
       <header className="topbar">
