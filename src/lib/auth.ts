@@ -75,3 +75,39 @@ export const logoutSession = async () => {
     // ignore network errors on logout
   }
 };
+
+export interface AutoSelectZone {
+  type: "rect";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label?: string;
+}
+
+export const requestAutoSelect = async (payload: {
+  imageDataUrl: string;
+  imageWidth: number;
+  imageHeight: number;
+}): Promise<AutoSelectZone[]> => {
+  const token = getStoredToken();
+  if (!token) {
+    throw new Error("Sign in required for Auto Select.");
+  }
+  const response = await fetch("/api/auto-select", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Auto Select failed.");
+  }
+  if (!Array.isArray(data?.zones) || data.zones.length === 0) {
+    throw new Error("No zones found.");
+  }
+  return data.zones as AutoSelectZone[];
+};

@@ -6,6 +6,7 @@ import { EllipseTool } from "../canvas/tools/EllipseTool";
 import { PolygonTool } from "../canvas/tools/PolygonTool";
 import { RectTool } from "../canvas/tools/RectTool";
 import { ZoneToolContext } from "../canvas/tools/ZoneTool";
+import { requestAutoSelect } from "../lib/auth";
 import { useEditorStore } from "../store/useEditorStore";
 import { Point, Zone } from "../types/editor";
 
@@ -21,6 +22,7 @@ interface EditorActions {
   exportZones: () => Promise<void>;
   applyTemplate: (templateId: string) => void;
   applyRatio: (ratioId: string) => void;
+  autoSelectZones: () => Promise<void>;
 }
 
 interface EditorContextValue {
@@ -56,6 +58,25 @@ const readFileAsText = (file: File) =>
   });
 
 const PALETTE = ["#60a5fa", "#34d399", "#f59e0b", "#f472b6", "#a78bfa", "#f87171"];
+
+const downscaleDataUrl = async (dataUrl: string, maxEdge = 1280) => {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Failed to prepare image."));
+    image.src = dataUrl;
+  });
+  const longest = Math.max(img.width, img.height);
+  if (longest <= maxEdge) return dataUrl;
+  const scale = maxEdge / longest;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(img.width * scale));
+  canvas.height = Math.max(1, Math.round(img.height * scale));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return dataUrl;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.86);
+};
 
 const applyZoneDefaults = (zones: Zone[], existingCount = 0) =>
   zones.map((zone, index) => ({
@@ -494,6 +515,45 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         useEditorStore.getState().setSelectedZoneIds([zone.id]);
         useEditorStore.getState().setTool("select");
         useEditorStore.getState().pushHistory("Apply ratio");
+      },
+      autoSelectZones: async () => {
+        const { isPro, imageDataUrl, imageInfo } = useEditorStore.getState();
+        if (!isPro) {
+          toast.message("Auto Select is available on Pro.");
+          return;
+        }
+        if (!imageDataUrl || !imageInfo) {
+          toast.error("Load an image first.");
+          return;
+        }
+        const toastId = toast.loading("Auto Select running...");
+        try {
+          const prepared = await downscaleDataUrl(imageDataUrl);
+          const detected = await requestAutoSelect({
+            imageDataUrl: prepared,
+            imageWidth: imageInfo.width,
+            imageHeight: imageInfo.height,
+          });
+          const zones: Zone[] = detected.map((zone) => ({
+            id: crypto.randomUUID(),
+            type: "rect",
+            x: zone.x,
+            y: zone.y,
+            width: zone.width,
+            height: zone.height,
+            label: zone.label,
+          }));
+          const withDefaults = applyZoneDefaults(zones);
+          useEditorStore.getState().setZones(withDefaults);
+          useEditorStore.getState().setSelectedZoneIds(withDefaults.map((zone) => zone.id));
+          useEditorStore.getState().setTool("select");
+          useEditorStore.getState().pushHistory("Auto Select");
+          toast.success(`Auto Select found ${withDefaults.length} zones.`, { id: toastId });
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : "Auto Select failed.", {
+            id: toastId,
+          });
+        }
       },
     };
   }, []);

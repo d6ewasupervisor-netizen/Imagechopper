@@ -396,6 +396,20 @@ const EditorShell = () => {
             {planLabel}
             {userEmail ? ` · ${userEmail}` : ""}
           </div>
+          <button
+            className="btn ghost"
+            onClick={() => {
+              if (!isPro) {
+                handleUpgrade();
+                return;
+              }
+              void actions.autoSelectZones();
+            }}
+            disabled={!imageInfo}
+            title={isPro ? "Auto Select" : "Auto Select (Pro)"}
+          >
+            Auto Select
+          </button>
           {userEmail ? (
             <button className="btn ghost" onClick={handleSignOut} title="Sign out">
               Sign out
@@ -574,6 +588,20 @@ const EditorShell = () => {
 
               {activeTab === "templates" && (
                 <div className="tab-content-grid">
+                  <button
+                    className="tab-action"
+                    disabled={!imageInfo}
+                    onClick={() => {
+                      if (!isPro) {
+                        handleUpgrade();
+                        return;
+                      }
+                      void actions.autoSelectZones();
+                    }}
+                    title={isPro ? "Auto Select zones from the image" : "Pro feature"}
+                  >
+                    Auto Select{isPro ? "" : " (Pro)"}
+                  </button>
                   {[
                     { id: "rule-thirds", label: "Rule of Thirds", pro: false },
                     { id: "golden-ratio", label: "Golden Ratio", pro: false },
