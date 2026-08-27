@@ -78,3 +78,24 @@ export const selectionBounds = (zones: Zone[]) => {
   const maxY = Math.max(...zones.map((zone) => zone.y + zone.height));
   return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 };
+
+export const rectsIntersect = (
+  a: { left: number; top: number; width: number; height: number },
+  b: { left: number; top: number; width: number; height: number }
+) =>
+  a.left < b.left + b.width &&
+  a.left + a.width > b.left &&
+  a.top < b.top + b.height &&
+  a.top + a.height > b.top;
+
+export const normalizeClientBox = (
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number
+) => ({
+  left: Math.min(startX, endX),
+  top: Math.min(startY, endY),
+  width: Math.abs(endX - startX),
+  height: Math.abs(endY - startY),
+});

@@ -7,6 +7,8 @@ import { useEditor } from "../../context/EditorContext";
 import {
   clampZoneToImage,
   cloneZones,
+  normalizeClientBox,
+  rectsIntersect,
   selectionBounds,
   translateZone,
 } from "../../lib/zoneOps";
@@ -61,16 +63,32 @@ type ContextMenuState = {
   imagePoint: Point | null;
 };
 
+type MarqueeSession = {
+  startClientX: number;
+  startClientY: number;
+  currentClientX: number;
+  currentClientY: number;
+  additive: boolean;
+};
+
 const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
   const { canvasManager, actions } = useEditor();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<Konva.Stage | null>(null);
   const dragSessionRef = useRef<DragSession | null>(null);
   const liveDeltaRef = useRef({ x: 0, y: 0 });
+  const marqueeRef = useRef<MarqueeSession | null>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [spacePressed, setSpacePressed] = useState(false);
   const [liveDelta, setLiveDelta] = useState({ x: 0, y: 0 });
+  const [marqueeBox, setMarqueeBox] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const panStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
@@ -246,6 +264,100 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
     setContextMenu(null);
   };
 
+  const getZoneClientRect = (zone: Zone) => {
+    const stage = stageRef.current;
+    if (!stage || !metrics || metrics.displayWidth <= 0 || metrics.displayHeight <= 0) {
+      return null;
+    }
+    const rect = stage.container().getBoundingClientRect();
+    const scaleX = rect.width / metrics.displayWidth;
+    const scaleY = rect.height / metrics.displayHeight;
+    return {
+      left: rect.left + zone.x * metrics.scale * scaleX,
+      top: rect.top + zone.y * metrics.scale * scaleY,
+      width: zone.width * metrics.scale * scaleX,
+      height: zone.height * metrics.scale * scaleY,
+    };
+  };
+
+  const updateMarqueeVisual = (session: MarqueeSession) => {
+    setMarqueeBox(
+      normalizeClientBox(
+        session.startClientX,
+        session.startClientY,
+        session.currentClientX,
+        session.currentClientY
+      )
+    );
+  };
+
+  const finishMarquee = () => {
+    const session = marqueeRef.current;
+    if (!session) return;
+    const box = normalizeClientBox(
+      session.startClientX,
+      session.startClientY,
+      session.currentClientX,
+      session.currentClientY
+    );
+    marqueeRef.current = null;
+    setMarqueeBox(null);
+
+    if (box.width < 3 && box.height < 3) {
+      if (!session.additive) {
+        setSelectedZoneIds([]);
+      }
+      return;
+    }
+
+    const currentZones = useEditorStore.getState().zones;
+    const currentSelected = useEditorStore.getState().selectedZoneIds;
+    const hitIds = currentZones
+      .filter((zone) => {
+        const zoneRect = getZoneClientRect(zone);
+        return zoneRect ? rectsIntersect(box, zoneRect) : false;
+      })
+      .map((zone) => zone.id);
+
+    if (session.additive) {
+      setSelectedZoneIds([...new Set([...currentSelected, ...hitIds])]);
+    } else {
+      setSelectedZoneIds(hitIds);
+    }
+  };
+
+  const beginMarquee = (event: MouseEvent | ReactMouseEvent) => {
+    if (tool !== "select" || spacePressed || event.button !== 0 || !imageInfo) return;
+    event.preventDefault();
+    setContextMenu(null);
+    const session: MarqueeSession = {
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      currentClientX: event.clientX,
+      currentClientY: event.clientY,
+      additive: event.shiftKey,
+    };
+    marqueeRef.current = session;
+    updateMarqueeVisual(session);
+
+    const handleMove = (moveEvent: MouseEvent) => {
+      if (!marqueeRef.current) return;
+      marqueeRef.current = {
+        ...marqueeRef.current,
+        currentClientX: moveEvent.clientX,
+        currentClientY: moveEvent.clientY,
+      };
+      updateMarqueeVisual(marqueeRef.current);
+    };
+    const handleUp = () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+      finishMarquee();
+    };
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+  };
+
   const handleZoneClick = (zoneId: string, event: Konva.KonvaEventObject<MouseEvent>) => {
     event.cancelBubble = true;
     if (tool !== "select") return;
@@ -375,7 +487,23 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
 
   const handlePanStart = (event: ReactMouseEvent<HTMLDivElement>) => {
     const isMiddleClick = event.button === 1;
-    if (!spacePressed && !isMiddleClick) return;
+    if (!spacePressed && !isMiddleClick) {
+      if (
+        tool === "select" &&
+        event.button === 0 &&
+        imageInfo &&
+        !(event.target as HTMLElement).closest(".zone-context-menu")
+      ) {
+        const target = event.target as HTMLElement;
+        const onKonvaSurface = Boolean(target.closest(".konva-overlay"));
+        // Empty padding around the image — start marquee here.
+        // Clicks on the Konva stage are handled by Stage onMouseDown.
+        if (!onKonvaSurface) {
+          beginMarquee(event);
+        }
+      }
+      return;
+    }
     event.preventDefault();
     setIsPanning(true);
     panStartRef.current = {
@@ -527,21 +655,28 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
           <div className={`konva-overlay ${imageInfo ? "active" : ""}`}>
             {metrics && (
               <Stage
+                ref={(node) => {
+                  stageRef.current = node;
+                }}
                 width={stageSize.width}
                 height={stageSize.height}
-                onMouseDown={(event) => handlePointer(event, actions.handlePointerDown)}
+                onMouseDown={(event) => {
+                  if (
+                    tool === "select" &&
+                    !spacePressed &&
+                    event.target === event.target.getStage()
+                  ) {
+                    beginMarquee(event.evt);
+                    return;
+                  }
+                  handlePointer(event, actions.handlePointerDown);
+                }}
                 onMouseMove={(event) => handlePointer(event, actions.handlePointerMove)}
                 onMouseUp={(event) => handlePointer(event, actions.handlePointerUp)}
                 onDblClick={(event) => handlePointer(event, actions.handleDoubleClick)}
                 onTouchStart={(event) => handlePointer(event, actions.handlePointerDown)}
                 onTouchMove={(event) => handlePointer(event, actions.handlePointerMove)}
                 onTouchEnd={(event) => handlePointer(event, actions.handlePointerUp)}
-                onClick={(event) => {
-                  if (tool === "select" && event.target === event.target.getStage()) {
-                    setSelectedZoneIds([]);
-                    setContextMenu(null);
-                  }
-                }}
                 onContextMenu={(event) => {
                   if (tool !== "select") return;
                   if (event.target !== event.target.getStage()) return;
@@ -657,6 +792,18 @@ const CanvasWorkspace = ({ onOpenImage }: { onOpenImage: () => void }) => {
             )}
           </div>
         </div>
+
+        {marqueeBox && (
+          <div
+            className="marquee-guide"
+            style={{
+              left: marqueeBox.left,
+              top: marqueeBox.top,
+              width: marqueeBox.width,
+              height: marqueeBox.height,
+            }}
+          />
+        )}
 
         {contextMenu && (
           <div
