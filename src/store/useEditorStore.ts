@@ -39,6 +39,7 @@ interface EditorState {
   isPro: boolean;
   userEmail: string | null;
   authReady: boolean;
+  clipboardZones: Zone[];
   maxFreeZones: number;
   zoom: number;
   pan: { x: number; y: number };
@@ -72,6 +73,7 @@ interface EditorState {
   setAuthSession: (email: string | null, isPro: boolean) => void;
   setAuthReady: (ready: boolean) => void;
   clearAuthSession: () => void;
+  setClipboardZones: (zones: Zone[]) => void;
   setZoom: (value: number) => void;
   setPan: (pan: { x: number; y: number }) => void;
   resetPan: () => void;
@@ -102,6 +104,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   isPro: false,
   userEmail: null,
   authReady: false,
+  clipboardZones: [],
   maxFreeZones: 10,
   zoom: 1,
   pan: { x: 0, y: 0 },
@@ -141,6 +144,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   setAuthSession: (email, isPro) => set({ userEmail: email, isPro }),
   setAuthReady: (ready) => set({ authReady: ready }),
   clearAuthSession: () => set({ userEmail: null, isPro: false }),
+  setClipboardZones: (zones) => set({ clipboardZones: zones }),
   setZoom: (value) => set({ zoom: value }),
   setPan: (pan) => set({ pan }),
   resetPan: () => set({ pan: { x: 0, y: 0 } }),

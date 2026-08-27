@@ -415,22 +415,29 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             height: height - shortH,
           });
         }
-        const gridMatch = templateId.match(/^grid-(\d+)x(\d+)$/);
-        if (gridMatch) {
-          const cols = Number(gridMatch[1]);
-          const rows = Number(gridMatch[2]);
+        const gridMatch = templateId.match(/^grid-(\d+)x(\d+)(?:-(gutter|contact))?$/);
+        const contactMatch = templateId.match(/^contact-(\d+)x(\d+)$/);
+        if (gridMatch || contactMatch) {
+          const cols = Number((gridMatch || contactMatch)![1]);
+          const rows = Number((gridMatch || contactMatch)![2]);
+          const useGutter =
+            Boolean(contactMatch) ||
+            gridMatch?.[3] === "gutter" ||
+            gridMatch?.[3] === "contact";
           if (cols > 0 && rows > 0) {
             const tileW = width / cols;
             const tileH = height / rows;
+            const insetX = useGutter ? tileW * 0.045 : 0;
+            const insetY = useGutter ? tileH * 0.05 : 0;
             for (let row = 0; row < rows; row += 1) {
               for (let col = 0; col < cols; col += 1) {
                 zones.push({
                   id: crypto.randomUUID(),
                   type: "rect",
-                  x: col * tileW,
-                  y: row * tileH,
-                  width: tileW,
-                  height: tileH,
+                  x: col * tileW + insetX,
+                  y: row * tileH + insetY,
+                  width: Math.max(1, tileW - insetX * 2),
+                  height: Math.max(1, tileH - insetY * 2),
                 });
               }
             }
@@ -438,8 +445,14 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
         if (zones.length === 0) return;
         const { isPro, maxFreeZones } = useEditorStore.getState();
-        if (!isPro && zones.length > maxFreeZones) {
-          toast.message(`Free plan allows up to ${maxFreeZones} zones.`);
+        const gridSizeMatch = templateId.match(/(?:grid|contact)-(\d+)x(\d+)/);
+        const templateZoneCount = gridSizeMatch
+          ? Number(gridSizeMatch[1]) * Number(gridSizeMatch[2])
+          : zones.length;
+        if (!isPro && (zones.length > maxFreeZones || templateZoneCount > maxFreeZones)) {
+          toast.message(
+            `Pro required for ${Math.max(zones.length, templateZoneCount)}-zone templates (free limit ${maxFreeZones}).`
+          );
           return;
         }
         const withDefaults = applyZoneDefaults(zones);

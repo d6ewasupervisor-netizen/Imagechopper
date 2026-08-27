@@ -4,11 +4,22 @@ import LoginModal from "../auth/LoginModal";
 import CanvasWorkspace from "./CanvasWorkspace";
 import { useEditor } from "../../context/EditorContext";
 import { logoutSession } from "../../lib/auth";
+import { clampZoneToImage, cloneZones } from "../../lib/zoneOps";
 import {
   selectCanRedo,
   selectCanUndo,
   useEditorStore,
 } from "../../store/useEditorStore";
+import { Zone } from "../../types/editor";
+
+const PALETTE = ["#60a5fa", "#34d399", "#f59e0b", "#f472b6", "#a78bfa", "#f87171"];
+
+const withDefaults = (zones: Zone[], existingCount = 0) =>
+  zones.map((zone, index) => ({
+    ...zone,
+    label: zone.label ?? `Zone ${existingCount + index + 1}`,
+    color: zone.color ?? PALETTE[(existingCount + index) % PALETTE.length],
+  }));
 
 type TabId =
   | "tools"
@@ -50,6 +61,8 @@ const EditorShell = () => {
   const userEmail = useEditorStore((state) => state.userEmail);
   const maxFreeZones = useEditorStore((state) => state.maxFreeZones);
   const clearAuthSession = useEditorStore((state) => state.clearAuthSession);
+  const clipboardZones = useEditorStore((state) => state.clipboardZones);
+  const setClipboardZones = useEditorStore((state) => state.setClipboardZones);
   const adjustments = useEditorStore((state) => state.adjustments);
   const setAdjustment = useEditorStore((state) => state.setAdjustment);
   const resetAdjustments = useEditorStore((state) => state.resetAdjustments);
@@ -211,6 +224,39 @@ const EditorShell = () => {
         return;
       }
 
+      if (isMod && key === "c") {
+        event.preventDefault();
+        const selected = zones.filter((zone) => selectedZoneIds.includes(zone.id));
+        if (selected.length === 0) return;
+        setClipboardZones(cloneZones(selected));
+        toast.success(
+          selected.length === 1 ? "Zone copied." : `${selected.length} zones copied.`
+        );
+        return;
+      }
+
+      if (isMod && key === "v") {
+        event.preventDefault();
+        if (!imageInfo || clipboardZones.length === 0) return;
+        if (!isPro && zones.length + clipboardZones.length > maxFreeZones) {
+          toast.message(`Free plan allows up to ${maxFreeZones} zones.`);
+          return;
+        }
+        const pasted = withDefaults(
+          cloneZones(clipboardZones, { x: 24, y: 24 }).map((zone) =>
+            clampZoneToImage(zone, imageInfo.width, imageInfo.height)
+          ),
+          zones.length
+        );
+        setZones([...zones, ...pasted]);
+        setSelectedZoneIds(pasted.map((zone) => zone.id));
+        pushHistory(pasted.length === 1 ? "Paste zone" : "Paste zones");
+        toast.success(
+          pasted.length === 1 ? "Zone pasted." : `${pasted.length} zones pasted.`
+        );
+        return;
+      }
+
       if (isMod && key === "o") {
         event.preventDefault();
         handleOpen();
@@ -283,13 +329,17 @@ const EditorShell = () => {
     actions,
     canRedo,
     canUndo,
+    clipboardZones,
     handleOpen,
     imageInfo,
     isExporting,
+    isPro,
+    maxFreeZones,
     nudgeSelectedZones,
     pushHistory,
     redo,
     selectedZoneIds,
+    setClipboardZones,
     setDrawing,
     setSelectedZoneIds,
     setTool,
@@ -524,55 +574,48 @@ const EditorShell = () => {
 
               {activeTab === "templates" && (
                 <div className="tab-content-grid">
-                  <button
-                    className="tab-action"
-                    disabled={!imageInfo}
-                    onClick={() => actions.applyTemplate("rule-thirds")}
-                  >
-                    Rule of Thirds
-                  </button>
-                  <button
-                    className="tab-action"
-                    disabled={!imageInfo}
-                    onClick={() => actions.applyTemplate("golden-ratio")}
-                  >
-                    Golden Ratio
-                  </button>
-                  <button
-                    className="tab-action"
-                    disabled={!imageInfo}
-                    onClick={() => actions.applyTemplate("grid-2x2")}
-                  >
-                    Grid 2x2
-                  </button>
-                  <button
-                    className="tab-action"
-                    disabled={!imageInfo}
-                    onClick={() => actions.applyTemplate("grid-3x2")}
-                  >
-                    Grid 3x2
-                  </button>
-                  <button
-                    className="tab-action"
-                    disabled={!imageInfo}
-                    onClick={() => actions.applyTemplate("grid-2x3")}
-                  >
-                    Grid 2x3
-                  </button>
-                  <button
-                    className="tab-action"
-                    disabled={!imageInfo}
-                    onClick={() => actions.applyTemplate("grid-4x2")}
-                  >
-                    Grid 4x2
-                  </button>
-                  <button
-                    className="tab-action"
-                    disabled={!imageInfo}
-                    onClick={() => actions.applyTemplate("grid-2x4")}
-                  >
-                    Grid 2x4
-                  </button>
+                  {[
+                    { id: "rule-thirds", label: "Rule of Thirds", pro: false },
+                    { id: "golden-ratio", label: "Golden Ratio", pro: false },
+                    { id: "grid-2x2", label: "Grid 2×2", pro: false },
+                    { id: "grid-3x2", label: "Grid 3×2", pro: false },
+                    { id: "grid-2x3", label: "Grid 2×3", pro: false },
+                    { id: "grid-4x2", label: "Grid 4×2", pro: false },
+                    { id: "grid-2x4", label: "Grid 2×4", pro: false },
+                    { id: "grid-3x3", label: "Grid 3×3", pro: true },
+                    { id: "grid-4x3", label: "Grid 4×3", pro: true },
+                    { id: "grid-4x4", label: "Grid 4×4", pro: true },
+                    { id: "grid-5x4", label: "Grid 5×4", pro: true },
+                    { id: "grid-4x5", label: "Grid 4×5", pro: true },
+                    { id: "grid-5x5", label: "Grid 5×5", pro: true },
+                    { id: "grid-5x6", label: "Grid 5×6", pro: true },
+                    { id: "contact-5x8", label: "Contact 5×8", pro: true },
+                    { id: "grid-6x6", label: "Grid 6×6", pro: true },
+                    { id: "grid-6x8", label: "Grid 6×8", pro: true },
+                    { id: "grid-8x5", label: "Grid 8×5", pro: true },
+                    { id: "grid-8x6", label: "Grid 8×6", pro: true },
+                    { id: "contact-4x6", label: "Contact 4×6", pro: true },
+                  ].map((template) => {
+                    const locked = template.pro && !isPro;
+                    return (
+                      <button
+                        key={template.id}
+                        className="tab-action"
+                        disabled={!imageInfo || locked}
+                        onClick={() => {
+                          if (locked) {
+                            handleUpgrade();
+                            return;
+                          }
+                          actions.applyTemplate(template.id);
+                        }}
+                        title={locked ? "Pro template" : template.label}
+                      >
+                        {template.label}
+                        {locked ? " (Pro)" : ""}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
@@ -730,6 +773,19 @@ const EditorShell = () => {
                         <div
                           key={zone.id}
                           className={`zone-item ${selectedZoneIds.includes(zone.id) ? "active" : ""}`}
+                          onClick={(event) => {
+                            if (event.shiftKey) {
+                              if (selectedZoneIds.includes(zone.id)) {
+                                setSelectedZoneIds(
+                                  selectedZoneIds.filter((id) => id !== zone.id)
+                                );
+                              } else {
+                                setSelectedZoneIds([...selectedZoneIds, zone.id]);
+                              }
+                              return;
+                            }
+                            setSelectedZoneIds([zone.id]);
+                          }}
                         >
                           <div>
                             <span className="zone-label">
@@ -1145,6 +1201,9 @@ const EditorShell = () => {
                   <div className="help-item">Delete selection: Delete/Backspace</div>
                   <div className="help-item">Cancel drawing: Esc</div>
                   <div className="help-item">Nudge selection: Arrow keys (Shift = 10px)</div>
+                  <div className="help-item">Multi-select: Shift + click zones</div>
+                  <div className="help-item">Duplicate drag: Ctrl/Cmd + drag zone</div>
+                  <div className="help-item">Copy / Paste: Ctrl/Cmd + C / V or right-click</div>
                 </div>
                 <div className="help-section">
                   <div className="section-title">Files</div>
