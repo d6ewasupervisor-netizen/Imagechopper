@@ -8,6 +8,7 @@ import {
   isGeminiEnabled,
   normalizeAutoSelectZones,
   parseDataUrl,
+  refinePhotoContentZones,
 } from "./server/gemini.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -147,14 +148,31 @@ app.post("/api/auto-select", requirePro, async (req, res) => {
 
     const { mimeType, data } = parseDataUrl(imageDataUrl);
     const prompt = [
-      "You detect crop zones in an image for a photo chopping tool.",
-      "Find every distinct rectangular photo/frame/cell that should be exported as its own crop.",
-      "This includes contact-sheet frames, grids of photos, separate products, or clear framed regions.",
-      "Return JSON only with this shape:",
-      '{ "zones": [ { "x": 0, "y": 0, "width": 0.2, "height": 0.2, "label": "optional" } ] }',
-      "Use NORMALIZED coordinates from 0 to 1 relative to the full image width/height.",
-      "x,y is the top-left of each zone. Prefer tight boxes around each photo content or film frame interior.",
-      "Do not return overlapping near-duplicates. Sort zones top-to-bottom, then left-to-right.",
+      "You detect crop zones for a photo chopping tool.",
+      "Goal: return one zone per PHOTOGRAPH that should be exported.",
+      "",
+      "What to INCLUDE:",
+      "- Only the photographic image content itself (faces, subjects, scene pixels).",
+      "- For contact sheets / 35mm film frames: the inner picture rectangle only.",
+      "",
+      "What to EXCLUDE (never include in the box):",
+      "- Black film borders / film bars above or below photos",
+      "- Frame numbers, KODAK/FILM text, sprocket graphics",
+      "- White gutters, margins, and spacing between frames",
+      "- Page headers/titles (e.g. CONTACT SHEET, PRINT #, film metadata)",
+      "- Empty background around the sheet",
+      "",
+      "Contact-sheet rule:",
+      "If each cell looks like a film strip with a black top bar, photo in the middle, and black bottom bar,",
+      "box ONLY the middle photo. Do not wrap the whole film cell.",
+      "Inset tightly to the photo edges where the picture meets the black border.",
+      "",
+      "Return JSON only:",
+      '{ "zones": [ { "x": 0.12, "y": 0.18, "width": 0.14, "height": 0.09, "label": "1" } ] }',
+      "Use NORMALIZED coordinates from 0 to 1 (full image width/height).",
+      "x,y = top-left of each photo content box.",
+      "No overlapping near-duplicates. Sort top-to-bottom, then left-to-right.",
+      "Prefer slightly tight boxes over loose ones that include borders.",
       `Image pixel size: ${Math.round(imageWidth)}x${Math.round(imageHeight)}.`,
     ].join("\n");
 
@@ -163,11 +181,12 @@ app.post("/api/auto-select", requirePro, async (req, res) => {
         { text: prompt },
         { inlineData: { mimeType, data } },
       ],
-      temperature: 0.1,
+      temperature: 0.05,
       timeoutMs: 60000,
     });
 
-    const zones = normalizeAutoSelectZones(result.parsed, imageWidth, imageHeight);
+    let zones = normalizeAutoSelectZones(result.parsed, imageWidth, imageHeight);
+    zones = refinePhotoContentZones(zones, imageWidth, imageHeight);
     if (zones.length === 0) {
       return res.status(422).json({ error: "No zones found. Try a clearer grid or photo set." });
     }

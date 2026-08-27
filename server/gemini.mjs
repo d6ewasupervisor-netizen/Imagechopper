@@ -156,3 +156,42 @@ export const normalizeAutoSelectZones = (parsed, imageWidth, imageHeight) => {
 
   return zones;
 };
+
+/**
+ * Light cleanup for contact-sheet style results:
+ * drop tiny junk boxes and de-dupe near-identical overlaps.
+ * Does not aggressively inset — prompt is responsible for photo-only bounds.
+ */
+export const refinePhotoContentZones = (zones, imageWidth, imageHeight) => {
+  const minArea = Math.max(64, imageWidth * imageHeight * 0.0004);
+  const filtered = zones.filter((zone) => zone.width * zone.height >= minArea);
+
+  const sorted = [...filtered].sort((a, b) => {
+    const row = a.y - b.y;
+    if (Math.abs(row) > Math.max(8, imageHeight * 0.01)) return row;
+    return a.x - b.x;
+  });
+
+  const kept = [];
+  for (const zone of sorted) {
+    const duplicate = kept.some((existing) => {
+      const ix = Math.max(
+        0,
+        Math.min(existing.x + existing.width, zone.x + zone.width) - Math.max(existing.x, zone.x)
+      );
+      const iy = Math.max(
+        0,
+        Math.min(existing.y + existing.height, zone.y + zone.height) - Math.max(existing.y, zone.y)
+      );
+      const overlap = ix * iy;
+      const smaller = Math.min(existing.width * existing.height, zone.width * zone.height);
+      return smaller > 0 && overlap / smaller > 0.72;
+    });
+    if (!duplicate) kept.push(zone);
+  }
+
+  return kept.map((zone, index) => ({
+    ...zone,
+    label: zone.label || String(index + 1),
+  }));
+};
