@@ -1,5 +1,6 @@
 export interface AuthUser {
-  email: string;
+  phone: string;
+  last4: string | null;
   isPro: boolean;
   plan: string;
 }
@@ -29,18 +30,36 @@ const parseJson = async (response: Response) => {
   }
 };
 
-export const loginWithPassword = async (
-  email: string,
-  password: string
-): Promise<AuthSession> => {
-  const response = await fetch("/api/login", {
+const apiFetch = (url: string, init: RequestInit = {}) => {
+  const headers = new Headers(init.headers || {});
+  const token = getStoredToken();
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  return fetch(url, { ...init, credentials: "include", headers });
+};
+
+export const sendLoginCode = async (phone: string): Promise<void> => {
+  const response = await apiFetch("/api/auth/otp/send", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ phone }),
   });
   const data = await parseJson(response);
   if (!response.ok) {
-    throw new Error(data?.error || "Sign-in failed.");
+    throw new Error(data?.error || "Could not send the login code.");
+  }
+};
+
+export const verifyLoginCode = async (phone: string, code: string): Promise<AuthSession> => {
+  const response = await apiFetch("/api/auth/otp/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone, code }),
+  });
+  const data = await parseJson(response);
+  if (!response.ok) {
+    throw new Error(data?.error || "Could not sign in.");
   }
   if (!data?.token || !data?.user) {
     throw new Error("Unexpected sign-in response.");
@@ -49,11 +68,13 @@ export const loginWithPassword = async (
   return { token: data.token, user: data.user as AuthUser };
 };
 
-export const fetchCurrentUser = async (token = getStoredToken()): Promise<AuthUser | null> => {
-  if (!token) return null;
-  const response = await fetch("/api/me", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+export const displayName = (user: AuthUser | null) => {
+  if (!user) return null;
+  return user.last4 ? `••${user.last4}` : user.phone || null;
+};
+
+export const fetchCurrentUser = async (): Promise<AuthUser | null> => {
+  const response = await apiFetch("/api/me");
   if (!response.ok) {
     setStoredToken(null);
     return null;
@@ -65,11 +86,10 @@ export const fetchCurrentUser = async (token = getStoredToken()): Promise<AuthUs
 export const logoutSession = async () => {
   const token = getStoredToken();
   setStoredToken(null);
-  if (!token) return;
   try {
-    await fetch("/api/logout", {
+    await apiFetch("/api/logout", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
   } catch {
     // ignore network errors on logout
@@ -90,16 +110,9 @@ export const requestAutoSelect = async (payload: {
   imageWidth: number;
   imageHeight: number;
 }): Promise<AutoSelectZone[]> => {
-  const token = getStoredToken();
-  if (!token) {
-    throw new Error("Sign in required for Auto Select.");
-  }
-  const response = await fetch("/api/auto-select", {
+  const response = await apiFetch("/api/auto-select", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   const data = await parseJson(response);

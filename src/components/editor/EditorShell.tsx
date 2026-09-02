@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import LoginModal from "../auth/LoginModal";
 import CanvasWorkspace from "./CanvasWorkspace";
 import { useEditor } from "../../context/EditorContext";
 import { logoutSession } from "../../lib/auth";
@@ -36,7 +35,6 @@ const EditorShell = () => {
   const [showTutorial, setShowTutorial] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const projectInputRef = useRef<HTMLInputElement | null>(null);
   const tool = useEditorStore((state) => state.tool);
@@ -158,9 +156,7 @@ const EditorShell = () => {
   const outputCountLabel = `${zones.length} outputs · Format: ${formatLabel}`;
   const planLabel = isPro ? "Pro" : "Free";
 
-  const handleUpgrade = () => {
-    setShowLogin(true);
-  };
+  const handleUpgrade = () => {};
 
   const handleSignOut = async () => {
     await logoutSession();
@@ -406,24 +402,13 @@ const EditorShell = () => {
               void actions.autoSelectZones();
             }}
             disabled={!imageInfo}
-            title={isPro ? "Auto Select" : "Auto Select (Pro)"}
+            title="Auto Select"
           >
             Auto Select
           </button>
-          {userEmail ? (
-            <button className="btn ghost" onClick={handleSignOut} title="Sign out">
-              Sign out
-            </button>
-          ) : (
-            <button className="btn ghost" onClick={() => setShowLogin(true)} title="Sign in">
-              Sign in
-            </button>
-          )}
-          {!isPro && (
-            <button className="btn primary" onClick={handleUpgrade} title="Upgrade">
-              Upgrade
-            </button>
-          )}
+          <button className="btn ghost" onClick={handleSignOut} title="Sign out">
+            Sign out
+          </button>
         </div>
       </header>
       <input
@@ -1189,14 +1174,9 @@ const EditorShell = () => {
                     Free: up to {maxFreeZones} zones per image, PNG exports, and light ads. Pro:
                     unlimited zones, JPEG/WebP, ZIP exports, metadata + project files, and no ads.
                   </div>
-                  <button className="btn small primary" onClick={handleUpgrade}>
-                    {isPro ? "Manage Pro" : "Upgrade to Pro"}
+                  <button className="btn small ghost" onClick={handleSignOut}>
+                    Sign out
                   </button>
-                  {!userEmail && (
-                    <button className="btn small ghost" onClick={() => setShowLogin(true)}>
-                      Sign in
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -1256,7 +1236,6 @@ const EditorShell = () => {
         </div>
       )}
 
-      <LoginModal open={showLogin} onClose={() => setShowLogin(false)} />
     </div>
   );
 };
